@@ -16,6 +16,8 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ const Auth = () => {
         await login(email.trim(), password);
         toast.success("Logged in successfully!");
       } else {
-        await signup(email.trim(), password);
+        await signup(email.trim(), password, firstName.trim(), lastName.trim());
         toast.success("Account created and logged in!");
       }
       navigate(redirectPath, { replace: true });
@@ -55,6 +57,30 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {!isLogin && (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required={!isLogin}
+                    placeholder="Alex"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required={!isLogin}
+                    placeholder="Morgan"
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

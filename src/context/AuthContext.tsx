@@ -1,16 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
-import { authApi } from "@/lib/api";
-
-export interface AuthUser {
-  id: string;
-  email: string;
-}
+import { authApi, type AuthUser } from "@/lib/api";
 
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -41,8 +36,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await refreshUser();
   }, [refreshUser]);
 
-  const signup = useCallback(async (email: string, password: string) => {
-    await authApi.signup({ email, password });
+  const signup = useCallback(async (email: string, password: string, firstName: string, lastName: string) => {
+    await authApi.signup({ email, password, firstName, lastName });
     await refreshUser();
   }, [refreshUser]);
 
@@ -69,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

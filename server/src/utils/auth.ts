@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { pool } from "../db.js";
 
 export interface AuthenticatedRequest extends Request {
-  user?: { id: string; email: string };
+  user?: { id: string; email: string; firstName: string; lastName: string };
   sessionToken?: string;
 }
 
@@ -13,11 +13,11 @@ export async function getUserForToken(token: string) {
   if (!token) return null;
 
   const result = await pool.query(
-    `SELECT users.id, users.email
-     FROM user_sessions
-     JOIN users ON users.id = user_sessions.user_id
-     WHERE user_sessions.session_token = $1
-       AND user_sessions.expires_at > NOW()`,
+    `SELECT cu.id, cu.email, cu.first_name, cu.last_name
+     FROM cc_user_sessions cus
+     JOIN cc_users cu ON cu.id = cus.user_id
+     WHERE cus.session_token = $1
+       AND cus.expires_at > NOW()`,
     [token]
   );
 
@@ -25,7 +25,13 @@ export async function getUserForToken(token: string) {
     return null;
   }
 
-  return result.rows[0] as { id: string; email: string };
+  const user = result.rows[0];
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.first_name,
+    lastName: user.last_name,
+  };
 }
 
 export const requireAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
