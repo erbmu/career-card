@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Award, TrendingUp, TrendingDown, Upload, FileText } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { CareerCardData } from "./CareerCardBuilder";
 import * as pdfjsLib from 'pdfjs-dist';
+import { aiApi } from "@/lib/api";
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -76,14 +76,7 @@ export const CareerCardScoring = ({ cardData: initialCardData }: CareerCardScori
         const imageBase64 = canvas.toDataURL('image/png');
         console.log("Converted PDF to image");
         
-        const { data, error } = await supabase.functions.invoke("parse-resume", {
-          body: { imageData: imageBase64 },
-        });
-
-        if (error) {
-          console.error("Parse error:", error);
-          throw new Error(error.message || "Failed to parse career card");
-        }
+        const data = await aiApi.parseResume({ imageData: imageBase64 });
         
         const cardData: CareerCardData = {
           profile: data.profile || { name: "", title: "", location: "", imageUrl: "", portfolioUrl: "" },
@@ -107,14 +100,7 @@ export const CareerCardScoring = ({ cardData: initialCardData }: CareerCardScori
         reader.onload = async (event) => {
           const imageBase64 = event.target?.result as string;
           
-          const { data, error } = await supabase.functions.invoke("parse-resume", {
-            body: { imageData: imageBase64 },
-          });
-
-          if (error) {
-            console.error("Parse error:", error);
-            throw new Error(error.message || "Failed to parse career card");
-          }
+          const data = await aiApi.parseResume({ imageData: imageBase64 });
           
           const cardData: CareerCardData = {
             profile: data.profile || { name: "", title: "", location: "", imageUrl: "", portfolioUrl: "" },
@@ -190,23 +176,15 @@ export const CareerCardScoring = ({ cardData: initialCardData }: CareerCardScori
         roleDescription,
       });
       
-      const { data, error } = await supabase.functions.invoke("score-career-card", {
-        body: {
-          careerCardData: cardToScore,
-          companyDescription,
-          roleDescription,
-        },
+      const data = await aiApi.scoreCareerCard({
+        careerCardData: cardToScore,
+        companyDescription,
+        roleDescription,
       });
 
-      console.log("Function response - data:", data);
-      console.log("Function response - error:", error);
+      console.log("Scoring response:", data);
 
-      if (error) {
-        console.error("Function invocation error:", error);
-        throw error;
-      }
-
-      setScoringResult(data);
+      setScoringResult(data as ScoringResult);
       toast({
         title: "Scoring Complete",
         description: "Your career card has been analyzed",

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { CareerCardPreview } from "@/components/CareerCardPreview";
 import { CareerCardData } from "@/components/CareerCardBuilder";
 import { Loader2 } from "lucide-react";
 import { logger } from "@/lib/validation";
+import { cardApi } from "@/lib/api";
 
 const SharedCard = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,16 +21,9 @@ const SharedCard = () => {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from("career_cards")
-          .select("card_data")
-          .eq("id", id)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        if (data && data.card_data) {
-          setCardData(data.card_data as unknown as CareerCardData);
+        const card = await cardApi.fetchCard(id);
+        if (card) {
+          setCardData(card as CareerCardData);
         } else {
           setError("Card not found");
         }

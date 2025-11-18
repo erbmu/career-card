@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { logger } from "@/lib/validation";
+import { aiApi } from "@/lib/api";
 
 interface ImportDataSectionProps {
   onDataImported: (data: any) => void;
@@ -116,17 +117,7 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       setIsLoading(true);
       toast.loading("Parsing your experience...");
 
-      // Import supabase client
-      const { supabase } = await import("@/integrations/supabase/client");
-
-      const { data, error } = await supabase.functions.invoke('parse-resume-experience', {
-        body: { resumeText: extractedText }
-      });
-
-      if (error) {
-        logger.error('Error parsing resume:', error);
-        throw error;
-      }
+      const data = await aiApi.parseResumeExperience({ resumeText: extractedText });
 
       logger.log('Resume parsing completed');
 
@@ -221,22 +212,13 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       setIsParsingPortfolio(true);
       toast.loading("Fetching portfolio content...");
 
-      const { supabase } = await import("@/integrations/supabase/client");
-
-      const { data, error } = await supabase.functions.invoke('parse-portfolio', {
-        body: { portfolioUrl: trimmedUrl }
-      });
-
-      if (error) {
-        logger.error('Error parsing portfolio:', error);
-        throw error;
-      }
+      const portfolioResponse = await aiApi.parsePortfolio({ portfolioUrl: trimmedUrl });
 
       logger.log('Portfolio parsing completed');
 
-      if (data?.success && data?.data) {
-        setPortfolioData(data.data);
-        setCodeFiles(data.codeFiles || []);
+      if (portfolioResponse?.success && portfolioResponse?.data) {
+        setPortfolioData(portfolioResponse.data);
+        setCodeFiles(portfolioResponse.codeFiles || []);
         setSelectedCodeFiles(new Set());
         setShowPortfolioPreview(true);
         
@@ -249,7 +231,7 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
 
         toast.success("Portfolio content loaded! Review and select code to showcase.");
       } else {
-        throw new Error(data?.error || 'Failed to parse portfolio');
+        throw new Error(portfolioResponse?.error || 'Failed to parse portfolio');
       }
     } catch (error: any) {
       console.error('Error processing portfolio:', error);

@@ -1,9 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Eye, Edit3, Link, Check, Award } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Download, Eye, Edit3, Link, Check } from "lucide-react";
+import { cardApi } from "@/lib/api";
 import { ProfileSection } from "./sections/ProfileSection";
 import { ExperienceSection } from "./sections/ExperienceSection";
 import { ProjectsSection } from "./sections/ProjectsSection";
@@ -76,18 +75,17 @@ export interface CareerCardData {
   }>;
 }
 
-interface CareerCardBuilderProps {
-  userId: string;
-}
+const CARD_ID_STORAGE_KEY = "career-card-id";
+const EDIT_TOKEN_STORAGE_KEY = "career-card-edit-token";
 
-const CareerCardBuilder = ({ userId }: CareerCardBuilderProps) => {
+const CareerCardBuilder = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [sharedCardId, setSharedCardId] = useState<string | null>(null);
+  const [editToken, setEditToken] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   const [cardData, setCardData] = useState<CareerCardData>({
     profile: {
       name: "",
@@ -105,6 +103,17 @@ const CareerCardBuilder = ({ userId }: CareerCardBuilderProps) => {
     pastimes: [],
     codeShowcase: [],
   });
+
+  useEffect(() => {
+    const storedId = localStorage.getItem(CARD_ID_STORAGE_KEY);
+    const storedToken = localStorage.getItem(EDIT_TOKEN_STORAGE_KEY);
+    if (storedId) {
+      setSharedCardId(storedId);
+    }
+    if (storedToken) {
+      setEditToken(storedToken);
+    }
+  }, []);
 
   const handleShareCard = async () => {
     try {
@@ -125,28 +134,17 @@ const CareerCardBuilder = ({ userId }: CareerCardBuilderProps) => {
       // Save or update the card data
       let cardId = sharedCardId;
       
-      if (cardId) {
-        // Update existing card
-        const { error } = await supabase
-          .from("career_cards")
-          .update({ card_data: validationResult.data as any })
-          .eq("id", cardId)
-          .eq("user_id", userId);
-
-        if (error) throw error;
+      if (cardId && editToken) {
+        await cardApi.updateCard(cardId, validationResult.data as CareerCardData, editToken);
+        localStorage.setItem(CARD_ID_STORAGE_KEY, cardId);
+        localStorage.setItem(EDIT_TOKEN_STORAGE_KEY, editToken);
       } else {
-        // Create new card
-        const { data, error } = await supabase
-          .from("career_cards")
-          .insert({ card_data: validationResult.data as any, user_id: userId })
-          .select("id")
-          .single();
-
-        if (error) throw error;
-        if (data) {
-          cardId = data.id;
-          setSharedCardId(data.id);
-        }
+        const created = await cardApi.createCard(validationResult.data as CareerCardData);
+        cardId = created.id;
+        setSharedCardId(created.id);
+        setEditToken(created.editToken);
+        localStorage.setItem(CARD_ID_STORAGE_KEY, created.id);
+        localStorage.setItem(EDIT_TOKEN_STORAGE_KEY, created.editToken);
       }
 
       // Copy link to clipboard
@@ -235,10 +233,6 @@ const CareerCardBuilder = ({ userId }: CareerCardBuilderProps) => {
     }
   };
 
-  const handleScoreCard = () => {
-    navigate("/score");
-  };
-
   const updateProfile = (profile: CareerCardData["profile"]) => {
     setCardData({ ...cardData, profile });
   };
@@ -325,10 +319,6 @@ const CareerCardBuilder = ({ userId }: CareerCardBuilderProps) => {
             >
               {showPreview ? <Edit3 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               {showPreview ? "Edit" : "Preview"}
-            </Button>
-            <Button onClick={handleScoreCard} variant="outline" className="gap-2">
-              <Award className="h-4 w-4" />
-              Score Card
             </Button>
             <Button onClick={handleShareCard} className="gap-2" disabled={isSharing}>
               {linkCopied ? <Check className="h-4 w-4" /> : <Link className="h-4 w-4" />}

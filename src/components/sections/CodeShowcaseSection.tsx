@@ -16,6 +16,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { z } from "zod";
+import { aiApi } from "@/lib/api";
 
 interface CodeShowcaseSectionProps {
   data: CareerCardData["codeShowcase"];
@@ -73,23 +74,14 @@ export const CodeShowcaseSection = ({ data, onChange }: CodeShowcaseSectionProps
       setIsParsingPortfolio(true);
       toast.loading("Fetching code from portfolio...");
 
-      const { supabase } = await import("@/integrations/supabase/client");
+      const response = await aiApi.parsePortfolio({ portfolioUrl: trimmedUrl });
 
-      const { data: responseData, error } = await supabase.functions.invoke('parse-portfolio', {
-        body: { portfolioUrl: trimmedUrl }
-      });
-
-      if (error) {
-        console.error('Error parsing portfolio:', error);
-        throw error;
-      }
-
-      if (responseData?.success && responseData?.codeFiles) {
-        setCodeFiles(responseData.codeFiles || []);
+      if (response?.success && response?.codeFiles) {
+        setCodeFiles(response.codeFiles || []);
         setSelectedCodeFiles(new Set());
-        toast.success(`Found ${responseData.codeFiles.length} code files! Select which ones to import.`);
+        toast.success(`Found ${response.codeFiles.length} code files! Select which ones to import.`);
       } else {
-        throw new Error(responseData?.error || 'Failed to parse portfolio');
+        throw new Error(response?.error || 'Failed to parse portfolio');
       }
     } catch (error: any) {
       console.error('Error processing portfolio:', error);

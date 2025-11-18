@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { User, Upload, Loader2 } from "lucide-react";
 import { CareerCardData } from "../CareerCardBuilder";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState, useRef } from "react";
 
@@ -37,38 +36,21 @@ export const ProfileSection = ({ data, onChange, theme = 'blue', onThemeChange }
 
     try {
       setIsUploading(true);
-      
-      // Create a unique file name
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-      const filePath = fileName;
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("profile-images")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Failed to read image"));
+        reader.readAsDataURL(file);
+      });
 
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("profile-images")
-        .getPublicUrl(filePath);
-
-      // Update the profile data with the new image URL
-      onChange({ ...data, imageUrl: publicUrl });
-      toast.success("Profile image uploaded successfully!");
+      onChange({ ...data, imageUrl: base64 });
+      toast.success("Profile image ready to use!");
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload image. Please try again.");
+      console.error("Image processing error:", error);
+      toast.error("Failed to process image. Please try again.");
     } finally {
       setIsUploading(false);
-      // Reset the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
