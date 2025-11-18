@@ -1,6 +1,6 @@
 # Career Card Builder
 
-A React + Tailwind interface for creating rich career cards backed by an Express API, Neon PostgreSQL for persistence, and OpenAI for the AI-assisted import and scoring flows.
+A React + Tailwind interface for creating rich career cards backed by an Express API, Neon PostgreSQL for persistence, and OpenAI for the AI-assisted import flows. Accounts are now required: each user signs up/logs in before creating, viewing, or downloading their own card.
 
 ## Tech Stack
 - Vite + React + TypeScript + Tailwind UI
@@ -28,24 +28,44 @@ A React + Tailwind interface for creating rich career cards backed by an Express
    The client uses `VITE_API_BASE_URL` to talk to the API (defaults to `http://localhost:4000/api`).
 
 ## Neon Database Setup
-Connect to your Neon project (psql or the dashboard) and run the following statements. They create everything the app needs to store and update career cards.
+Connect to your Neon project (psql or the dashboard) and run the following statements. They create the auth + session tables along with the `career_cards` table that stores each user’s card.
 
 ```sql
 -- Enable uuid helpers for edit token generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  session_token UUID NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS career_cards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   card_data JSONB NOT NULL,
   edit_token UUID NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_career_cards_user ON career_cards (user_id);
+
 CREATE INDEX IF NOT EXISTS idx_career_cards_updated_at ON career_cards (updated_at DESC);
 ```
 
-The API writes to this table through the `/api/cards` endpoints and uses the `edit_token` to ensure only the creator can update an existing card.
+> Migrating from the older Supabase-based schema? Drop the previous `career_cards` table (or run the appropriate `ALTER TABLE` statements) so that every card row references a user before applying the script above.
+
+The API writes to these tables through the `/api/auth/*` and `/api/cards/*` endpoints and uses the session cookie plus `user_id` to ensure only the logged-in creator can read or modify their card. The `edit_token` column is still generated so that private share links can continue to reference a stable UUID.
 
 ## Temporarily Disabled Features
 - The AI-powered score/report generator is intentionally hidden from the UI for now. The supporting code remains in the repo so it can be re-enabled later without re-implementing it.
@@ -71,9 +91,19 @@ All configuration lives in `.env` (use `.env.example` as a guide). These are the
 Once deployed, update `VITE_API_BASE_URL` in your production `.env` (or Render environment) to point at `https://<your-render-app>.onrender.com/api` so the client talks to the hosted API.
 
 ## API Endpoints (server)
-- `POST /api/cards` – creates a new card and returns `{ id, editToken }`
-- `PUT /api/cards/:id` – updates card data when provided with a valid `editToken`
-- `GET /api/cards/:id` – fetches shared card data
+**Auth**
+- `POST /api/auth/signup` – register a new user (hashes and stores password)
+- `POST /api/auth/login` – verify credentials and set the session cookie
+- `POST /api/auth/logout` – destroy the current session
+- `GET /api/auth/me` – returns the current user if the session cookie is valid
+
+**Cards** *(all require authentication and only operate on the logged-in user’s record)*
+- `POST /api/cards` – creates a card for the current user (ignored if one already exists)
+- `PUT /api/cards/:id` – updates the specified card when it belongs to the current user
+- `GET /api/cards/me` – fetches the logged-in user’s saved card
+- `GET /api/cards/:id` – fetches the card only if it belongs to the current user (private “share” links)
+
+**AI helpers** *(also require authentication)*
 - `POST /api/ai/parse-resume` – parses uploaded resume text or images
 - `POST /api/ai/parse-resume-experience` – extracts experience and projects from resume text
 - `POST /api/ai/parse-portfolio` – pulls portfolio metadata and code samples

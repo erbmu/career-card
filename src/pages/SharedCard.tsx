@@ -1,18 +1,30 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { CareerCardPreview } from "@/components/CareerCardPreview";
 import { CareerCardData } from "@/components/CareerCardBuilder";
 import { Loader2 } from "lucide-react";
 import { logger } from "@/lib/validation";
 import { cardApi } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const SharedCard = () => {
   const { id } = useParams<{ id: string }>();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [cardData, setCardData] = useState<CareerCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth", { replace: true, state: { from: location.pathname } });
+    }
+  }, [user, authLoading, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+
     const fetchCard = async () => {
       if (!id) {
         setError("No card ID provided");
@@ -36,9 +48,9 @@ const SharedCard = () => {
     };
 
     fetchCard();
-  }, [id]);
+  }, [id, user]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-[hsl(var(--editor-bg))] flex items-center justify-center">
         <div className="text-center">
@@ -47,6 +59,10 @@ const SharedCard = () => {
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   if (error || !cardData) {

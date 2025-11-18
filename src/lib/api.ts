@@ -8,6 +8,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       'Content-Type': 'application/json',
       ...(options?.headers || {}),
     },
+    credentials: 'include',
     ...options,
   });
 
@@ -36,15 +37,41 @@ export const cardApi = {
       body: JSON.stringify({ cardData }),
     });
   },
-  async updateCard(id: string, cardData: CareerCardData, editToken: string) {
+  async updateCard(id: string, cardData: CareerCardData) {
     return request<{ success: boolean }>(`/cards/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ cardData, editToken }),
+      body: JSON.stringify({ cardData }),
     });
   },
   async fetchCard(id: string) {
     const data = await request<{ cardData: CareerCardData }>(`/cards/${id}`);
     return data.cardData;
+  },
+  async fetchMyCard() {
+    return request<{ id: string | null; cardData: CareerCardData | null }>('/cards/me');
+  },
+};
+
+export const authApi = {
+  signup(payload: { email: string; password: string }) {
+    return request<{ user: { id: string; email: string } }>('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  login(payload: { email: string; password: string }) {
+    return request<{ user: { id: string; email: string } }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  logout() {
+    return request('/auth/logout', {
+      method: 'POST',
+    });
+  },
+  me() {
+    return request<{ user: { id: string; email: string } }>('/auth/me');
   },
 };
 

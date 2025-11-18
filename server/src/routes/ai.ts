@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { careerCardDataSchema } from '../../../src/shared/career-card-schema.js';
+import { AuthenticatedRequest, requireAuth } from '../utils/auth.js';
 
 const router = Router();
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
@@ -57,7 +58,9 @@ const parseResumeSchema = z.object({
   imageData: z.string().optional(),
 });
 
-router.post('/parse-resume', async (req, res, next) => {
+router.use(requireAuth);
+
+router.post('/parse-resume', async (req: AuthenticatedRequest, res, next) => {
   try {
     const parsed = parseResumeSchema.safeParse(req.body);
     if (!parsed.success || (!parsed.data.resumeText && !parsed.data.imageData)) {
@@ -109,7 +112,7 @@ const parseResumeExperienceSchema = z.object({
   resumeText: z.string().min(20, 'Resume text is required').max(100_000, 'Resume text is too long'),
 });
 
-router.post('/parse-resume-experience', async (req, res, next) => {
+router.post('/parse-resume-experience', async (req: AuthenticatedRequest, res, next) => {
   try {
     const parsed = parseResumeExperienceSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -202,7 +205,7 @@ async function fetchGitHubCodeSamples(username: string) {
   return codeFiles;
 }
 
-router.post('/parse-portfolio', async (req, res, next) => {
+router.post('/parse-portfolio', async (req: AuthenticatedRequest, res, next) => {
   try {
     const parsed = portfolioSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -271,7 +274,7 @@ const scoreSchema = z.object({
   roleDescription: z.string().min(10, 'Role description is required'),
 });
 
-router.post('/score-career-card', async (req, res, next) => {
+router.post('/score-career-card', async (req: AuthenticatedRequest, res, next) => {
   try {
     const parsed = scoreSchema.safeParse(req.body);
     if (!parsed.success) {

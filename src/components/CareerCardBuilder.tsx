@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Eye, Edit3, Link, Check } from "lucide-react";
+import { Download, Eye, Edit3, Link, Check, Loader2 } from "lucide-react";
 import { cardApi } from "@/lib/api";
 import { ProfileSection } from "./sections/ProfileSection";
 import { ExperienceSection } from "./sections/ExperienceSection";
@@ -13,7 +13,6 @@ import { PastimesSection } from "./sections/PastimesSection";
 import { CodeShowcaseSection } from "./sections/CodeShowcaseSection";
 import { CareerCardPreview } from "./CareerCardPreview";
 import { ImportDataSection } from "./ImportDataSection";
-import { CareerCardScoring } from "./CareerCardScoring";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -75,16 +74,13 @@ export interface CareerCardData {
   }>;
 }
 
-const CARD_ID_STORAGE_KEY = "career-card-id";
-const EDIT_TOKEN_STORAGE_KEY = "career-card-edit-token";
-
 const CareerCardBuilder = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [sharedCardId, setSharedCardId] = useState<string | null>(null);
-  const [editToken, setEditToken] = useState<string | null>(null);
+  const [isLoadingCard, setIsLoadingCard] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
   const [cardData, setCardData] = useState<CareerCardData>({
     profile: {
@@ -105,14 +101,21 @@ const CareerCardBuilder = () => {
   });
 
   useEffect(() => {
-    const storedId = localStorage.getItem(CARD_ID_STORAGE_KEY);
-    const storedToken = localStorage.getItem(EDIT_TOKEN_STORAGE_KEY);
-    if (storedId) {
-      setSharedCardId(storedId);
-    }
-    if (storedToken) {
-      setEditToken(storedToken);
-    }
+    const loadExistingCard = async () => {
+      try {
+        const existing = await cardApi.fetchMyCard();
+        if (existing?.id && existing.cardData) {
+          setSharedCardId(existing.id);
+          setCardData(existing.cardData as CareerCardData);
+        }
+      } catch (error) {
+        logger.error('Failed to load saved card', error);
+      } finally {
+        setIsLoadingCard(false);
+      }
+    };
+
+    loadExistingCard();
   }, []);
 
   const handleShareCard = async () => {
@@ -134,17 +137,12 @@ const CareerCardBuilder = () => {
       // Save or update the card data
       let cardId = sharedCardId;
       
-      if (cardId && editToken) {
-        await cardApi.updateCard(cardId, validationResult.data as CareerCardData, editToken);
-        localStorage.setItem(CARD_ID_STORAGE_KEY, cardId);
-        localStorage.setItem(EDIT_TOKEN_STORAGE_KEY, editToken);
+      if (cardId) {
+        await cardApi.updateCard(cardId, validationResult.data as CareerCardData);
       } else {
         const created = await cardApi.createCard(validationResult.data as CareerCardData);
         cardId = created.id;
         setSharedCardId(created.id);
-        setEditToken(created.editToken);
-        localStorage.setItem(CARD_ID_STORAGE_KEY, created.id);
-        localStorage.setItem(EDIT_TOKEN_STORAGE_KEY, created.editToken);
       }
 
       // Copy link to clipboard
@@ -299,6 +297,14 @@ const CareerCardBuilder = () => {
     setCardData(newCardData);
     toast.success("Data imported successfully!");
   };
+
+  if (isLoadingCard) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[hsl(var(--editor-bg))]">

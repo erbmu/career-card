@@ -1,10 +1,12 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import cardsRouter from './routes/cards.js';
 import aiRouter from './routes/ai.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 
@@ -24,7 +26,9 @@ app.use(
     limit: '15mb',
   })
 );
+app.use(cookieParser());
 
+app.use('/api/auth', authRouter);
 app.use('/api/cards', cardsRouter);
 app.use('/api/ai', aiRouter);
 
