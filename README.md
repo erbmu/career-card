@@ -28,42 +28,42 @@ A React + Tailwind interface for creating rich career cards backed by an Express
    The client uses `VITE_API_BASE_URL` to talk to the API (defaults to `http://localhost:4000/api`).
 
 ## Neon Database Setup
-Connect to your Neon project (psql or the dashboard) and run the following statements. They create the auth + session tables along with the `career_cards` table that stores each user’s card.
+Connect to your Neon project (psql or the dashboard) and run the following statements. They create the auth + session tables along with the `cc_career_cards` table that stores each user’s card.
 
 ```sql
 -- Enable uuid helpers for edit token generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS cc_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS user_sessions (
+CREATE TABLE IF NOT EXISTS cc_user_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES cc_users(id) ON DELETE CASCADE,
   session_token UUID NOT NULL UNIQUE,
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS career_cards (
+CREATE TABLE IF NOT EXISTS cc_career_cards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES cc_users(id) ON DELETE CASCADE,
   card_data JSONB NOT NULL,
   edit_token UUID NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_career_cards_user ON career_cards (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_career_cards_user ON cc_career_cards (user_id);
 
-CREATE INDEX IF NOT EXISTS idx_career_cards_updated_at ON career_cards (updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cc_career_cards_updated_at ON cc_career_cards (updated_at DESC);
 ```
 
-> Migrating from the older Supabase-based schema? Drop the previous `career_cards` table (or run the appropriate `ALTER TABLE` statements) so that every card row references a user before applying the script above.
+> Migrating from the older Supabase-based schema? Drop or rename the previous `career_cards` table (or run the appropriate `ALTER TABLE` statements) so that every card row references a user before applying the script above.
 
 The API writes to these tables through the `/api/auth/*` and `/api/cards/*` endpoints and uses the session cookie plus `user_id` to ensure only the logged-in creator can read or modify their card. The `edit_token` column is still generated so that private share links can continue to reference a stable UUID.
 

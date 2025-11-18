@@ -28,7 +28,7 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res, next) => {
     const userId = req.user!.id;
 
     const existing = await pool.query(
-      `SELECT id, edit_token FROM career_cards WHERE user_id = $1`,
+      `SELECT id, edit_token FROM cc_career_cards WHERE user_id = $1`,
       [userId]
     );
 
@@ -37,7 +37,7 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res, next) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO career_cards (user_id, card_data, edit_token) VALUES ($1, $2, $3) RETURNING id, edit_token`,
+      `INSERT INTO cc_career_cards (user_id, card_data, edit_token) VALUES ($1, $2, $3) RETURNING id, edit_token`,
       [userId, cardData, editToken]
     );
 
@@ -64,7 +64,7 @@ router.put('/:id', requireAuth, async (req: AuthenticatedRequest, res, next) => 
     const { cardData } = parsed.data;
 
     const result = await pool.query(
-      `UPDATE career_cards SET card_data = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
+      `UPDATE cc_career_cards SET card_data = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
       [cardData, idResult.data, req.user!.id]
     );
 
@@ -81,7 +81,7 @@ router.put('/:id', requireAuth, async (req: AuthenticatedRequest, res, next) => 
 router.get('/me', requireAuth, async (req: AuthenticatedRequest, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT id, card_data FROM career_cards WHERE user_id = $1`,
+      `SELECT id, card_data FROM cc_career_cards WHERE user_id = $1`,
       [req.user!.id]
     );
 
@@ -103,7 +103,7 @@ router.get('/:id', requireAuth, async (req: AuthenticatedRequest, res, next) => 
     }
 
     const result = await pool.query(
-      `SELECT card_data, user_id FROM career_cards WHERE id = $1`,
+      `SELECT card_data, user_id FROM cc_career_cards WHERE id = $1`,
       [idResult.data]
     );
 
