@@ -12,9 +12,10 @@ interface ProfileSectionProps {
   onChange: (profile: CareerCardData["profile"]) => void;
   theme?: 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'slate';
   onThemeChange: (theme: 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'slate') => void;
+  nameLocked?: boolean;
 }
 
-export const ProfileSection = ({ data, onChange, theme = 'blue', onThemeChange }: ProfileSectionProps) => {
+export const ProfileSection = ({ data, onChange, theme = 'blue', onThemeChange, nameLocked }: ProfileSectionProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,7 +78,11 @@ export const ProfileSection = ({ data, onChange, theme = 'blue', onThemeChange }
             placeholder="John Doe"
             value={data.name}
             onChange={(e) => onChange({ ...data, name: e.target.value })}
+            disabled={nameLocked}
           />
+          {nameLocked && (
+            <p className="text-xs text-muted-foreground">Your name is managed from your account settings.</p>
+          )}
         </div>
 
         <div className="space-y-2">

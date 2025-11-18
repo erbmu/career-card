@@ -1,5 +1,12 @@
 import type { CareerCardData } from '@/components/CareerCardBuilder';
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -53,14 +60,14 @@ export const cardApi = {
 };
 
 export const authApi = {
-  signup(payload: { email: string; password: string }) {
-    return request<{ user: { id: string; email: string } }>('/auth/signup', {
+  signup(payload: { email: string; password: string; firstName: string; lastName: string }) {
+    return request<{ user: AuthUser }>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
   login(payload: { email: string; password: string }) {
-    return request<{ user: { id: string; email: string } }>('/auth/login', {
+    return request<{ user: AuthUser }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -71,7 +78,7 @@ export const authApi = {
     });
   },
   me() {
-    return request<{ user: { id: string; email: string } }>('/auth/me');
+    return request<{ user: AuthUser }>('/auth/me');
   },
 };
 

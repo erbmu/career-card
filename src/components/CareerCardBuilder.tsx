@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, Eye, Edit3, Link, Check, Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { careerCardDataSchema, logger } from "@/lib/validation";
+import { useAuth } from "@/context/AuthContext";
 
 export interface CareerCardData {
   profile: {
@@ -75,6 +76,7 @@ export interface CareerCardData {
 }
 
 const CareerCardBuilder = () => {
+  const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -100,7 +102,14 @@ const CareerCardBuilder = () => {
     codeShowcase: [],
   });
 
+  const lockedName = useMemo(() => {
+    if (!user) return "";
+    return `${user.firstName} ${user.lastName}`.trim();
+  }, [user]);
+
   useEffect(() => {
+    if (!user) return;
+    setIsLoadingCard(true);
     const loadExistingCard = async () => {
       try {
         const existing = await cardApi.fetchMyCard();
@@ -116,7 +125,23 @@ const CareerCardBuilder = () => {
     };
 
     loadExistingCard();
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    if (!lockedName) return;
+    setCardData(prev => {
+      if (prev.profile.name === lockedName) {
+        return prev;
+      }
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          name: lockedName,
+        },
+      };
+    });
+  }, [lockedName]);
 
   const handleShareCard = async () => {
     try {
@@ -273,6 +298,12 @@ const CareerCardBuilder = () => {
         ...importedData.profile,
       };
     }
+    if (lockedName) {
+      newCardData.profile = {
+        ...newCardData.profile,
+        name: lockedName,
+      };
+    }
 
     // Update experience if available
     if (importedData.experience && Array.isArray(importedData.experience)) {
@@ -297,6 +328,10 @@ const CareerCardBuilder = () => {
     setCardData(newCardData);
     toast.success("Data imported successfully!");
   };
+
+  if (!user) {
+    return null;
+  }
 
   if (isLoadingCard) {
     return (
@@ -374,10 +409,11 @@ const CareerCardBuilder = () => {
             <ImportDataSection onDataImported={handleImportedData} />
             
             <ProfileSection
-              data={cardData.profile} 
+              data={cardData.profile}
               onChange={updateProfile}
               theme={cardData.theme}
               onThemeChange={(theme) => setCardData({ ...cardData, theme })}
+              nameLocked
             />
             <ExperienceSection data={cardData.experience} onChange={updateExperience} />
             <ProjectsSection data={cardData.projects} onChange={updateProjects} />
