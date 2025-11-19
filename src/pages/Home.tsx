@@ -5,15 +5,27 @@ import { cardApi, type CardRecord } from "@/lib/api";
 import { createEmptyCareerCardData } from "@/lib/defaultCardData";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, PencilLine, Settings2 } from "lucide-react";
+import { Loader2, Plus, PencilLine, Settings2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Home = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [cards, setCards] = useState<CardRecord[]>([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<CardRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,7 +69,23 @@ const Home = () => {
   };
 
   const handleSettings = () => {
-    toast.info("Profile settings coming soon.");
+    navigate("/settings");
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setIsDeleting(true);
+      await cardApi.deleteCard(deleteTarget.id);
+      toast.success("Career card deleted.");
+      await loadCards();
+      setDeleteTarget(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to delete card";
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading || !user) {
@@ -119,14 +147,25 @@ const Home = () => {
                       {formatDistanceToNow(new Date(card.updatedAt), { addSuffix: true })}
                     </p>
                   </CardHeader>
-                  <CardContent className="flex justify-between items-center">
-                    <div>
+                  <CardContent className="flex justify-between items-center gap-3">
+                    <div className="space-y-1">
                       <p className="font-semibold">{card.cardData.profile.name}</p>
                       <p className="text-sm text-muted-foreground">{card.cardData.profile.location || 'Location TBD'}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(card.id)} className="gap-2">
-                      <PencilLine className="h-4 w-4" /> Edit
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(card.id)} className="gap-2">
+                        <PencilLine className="h-4 w-4" /> Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Delete card"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(card)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -145,6 +184,33 @@ const Home = () => {
           )}
         </div>
       </main>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => {
+        if (!open && !isDeleting) {
+          setDeleteTarget(null);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this career card?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The card{" "}
+              <span className="font-semibold">{deleteTarget?.cardData.profile.title || "Untitled Role"}</span> and
+              all of its content will be removed permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Yes, delete it'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

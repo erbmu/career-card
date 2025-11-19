@@ -8,6 +8,7 @@ import BuilderPage from "./pages/Index";
 import SharedCard from "./pages/SharedCard";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/builder/:id" element={<BuilderPage />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/card/:id" element={<SharedCard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

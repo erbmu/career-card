@@ -17,6 +17,39 @@ const signupSchema = baseCredentialsSchema.extend({
   lastName: z.string().min(1, "Last name is required").max(100),
 });
 
+const updateProfileSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  jobTitle: z.string().max(150).optional().nullable(),
+  location: z.string().max(150).optional().nullable(),
+  bio: z.string().max(1000).optional().nullable(),
+});
+
+const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(8, "Current password is required").max(100),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").max(100),
+});
+
+const normalizeOptional = (value?: string | null) => {
+  if (typeof value !== "string") {
+    return value ?? null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+function mapDbUser(row: any) {
+  return {
+    id: row.id,
+    email: row.email,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    jobTitle: row.job_title,
+    location: row.location,
+    bio: row.bio,
+  };
+}
+
 async function createSession(res: Response, userId: string) {
   const sessionToken = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
@@ -50,20 +83,15 @@ router.post("/signup", async (req, res, next) => {
     const result = await pool.query(
       `INSERT INTO cc_users (email, password_hash, first_name, last_name)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, email, first_name, last_name`,
+       RETURNING id, email, first_name, last_name, job_title, location, bio`,
       [email, passwordHash, parsed.data.firstName.trim(), parsed.data.lastName.trim()]
     );
 
-    const user = result.rows[0];
+    const user = mapDbUser(result.rows[0]);
     await createSession(res, user.id);
 
     return res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-      },
+      user,
     });
   } catch (error) {
     next(error);
@@ -79,7 +107,7 @@ router.post("/login", async (req, res, next) => {
 
     const email = parsed.data.email.toLowerCase();
     const result = await pool.query(
-      "SELECT id, email, password_hash, first_name, last_name FROM cc_users WHERE email = $1",
+      "SELECT id, email, password_hash, first_name, last_name, job_title, location, bio FROM cc_users WHERE email = $1",
       [email]
     );
     if ((result.rowCount ?? 0) === 0) {
@@ -95,12 +123,7 @@ router.post("/login", async (req, res, next) => {
     await createSession(res, user.id);
 
     return res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-      },
+      user: mapDbUser(user),
     });
   } catch (error) {
     next(error);
@@ -119,6 +142,73 @@ router.post("/logout", requireAuth, async (req: AuthenticatedRequest, res, next)
 
 router.get("/me", requireAuth, (req: AuthenticatedRequest, res) => {
   return res.json({ user: req.user });
+});
+
+router.put("/profile", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid profile data" });
+    }
+
+    const { firstName, lastName, jobTitle, location, bio } = parsed.data;
+    const result = await pool.query(
+      `UPDATE cc_users
+       SET first_name = $1,
+           last_name = $2,
+           job_title = $3,
+           location = $4,
+           bio = $5
+       WHERE id = $6
+       RETURNING id, email, first_name, last_name, job_title, location, bio`,
+      [
+        firstName.trim(),
+        lastName.trim(),
+        normalizeOptional(jobTitle),
+        normalizeOptional(location),
+        normalizeOptional(bio),
+        req.user!.id,
+      ]
+    );
+
+    if ((result.rowCount ?? 0) === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const updatedUser = mapDbUser(result.rows[0]);
+    req.user = updatedUser;
+
+    return res.json({ user: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/password", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const parsed = updatePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid password data" });
+    }
+
+    const userResult = await pool.query("SELECT password_hash FROM cc_users WHERE id = $1", [req.user!.id]);
+    if ((userResult.rowCount ?? 0) === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const currentHash = userResult.rows[0].password_hash;
+    const isValid = await bcrypt.compare(parsed.data.currentPassword, currentHash);
+    if (!isValid) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+
+    const newHash = await bcrypt.hash(parsed.data.newPassword, 10);
+    await pool.query("UPDATE cc_users SET password_hash = $1 WHERE id = $2", [newHash, req.user!.id]);
+
+    return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

@@ -1,6 +1,6 @@
 # Career Card Builder
 
-A React + Tailwind interface for creating rich career cards backed by an Express API, Neon PostgreSQL for persistence, and OpenAI for the AI-assisted import flows. Accounts are now required: each user signs up/logs in before creating, viewing, or downloading their own card.
+A React + Tailwind interface for creating rich career cards backed by an Express API, Neon PostgreSQL for persistence, and OpenAI for the AI-assisted import flows. Accounts are now required: each user signs up/logs in before creating, viewing, or downloading their own card, reviews everything from the dashboard grid, and can manage their details from the Settings page.
 
 ## Tech Stack
 - Vite + React + TypeScript + Tailwind UI
@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS cc_users (
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
+  job_title TEXT,
+  location TEXT,
+  bio TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -66,6 +69,13 @@ CREATE INDEX IF NOT EXISTS idx_cc_career_cards_updated_at ON cc_career_cards (up
 ```
 
 > Migrating from the older Supabase-based schema? Drop or rename the previous `career_cards` table (or run the appropriate `ALTER TABLE` statements) so that every card row references a user before applying the script above.
+>
+> Upgrading from the previous Neon schema (without profile columns)? Run:
+> ```sql
+> ALTER TABLE cc_users ADD COLUMN IF NOT EXISTS job_title TEXT;
+> ALTER TABLE cc_users ADD COLUMN IF NOT EXISTS location TEXT;
+> ALTER TABLE cc_users ADD COLUMN IF NOT EXISTS bio TEXT;
+> ```
 
 The API writes to these tables through the `/api/auth/*` and `/api/cards/*` endpoints and uses the session cookie plus `user_id` to ensure only the logged-in creator can read or modify their card. The `edit_token` column is still generated so that private share links can continue to reference a stable UUID.
 
@@ -98,12 +108,15 @@ Once deployed, update `VITE_API_BASE_URL` in your production `.env` (or Render e
 - `POST /api/auth/login` – verify credentials and set the session cookie
 - `POST /api/auth/logout` – destroy the current session
 - `GET /api/auth/me` – returns the current user if the session cookie is valid
+- `PUT /api/auth/profile` – update first/last name plus optional job title, location, and bio
+- `PUT /api/auth/password` – change password after confirming the current one
 
 **Cards** *(all require authentication and only operate on the logged-in user’s record)*
-- `POST /api/cards` – creates a card for the current user (ignored if one already exists)
+- `POST /api/cards` – creates a card for the current user
 - `PUT /api/cards/:id` – updates the specified card when it belongs to the current user
-- `GET /api/cards/me` – fetches the logged-in user’s saved card
+- `GET /api/cards` – lists every card owned by the logged-in user (used by the dashboard)
 - `GET /api/cards/:id` – fetches the card only if it belongs to the current user (private “share” links)
+- `DELETE /api/cards/:id` – permanently deletes a card you own
 
 **AI helpers** *(also require authentication)*
 - `POST /api/ai/parse-resume` – parses uploaded resume text or images

@@ -2,7 +2,15 @@ import { Request, Response, NextFunction } from "express";
 import { pool } from "../db.js";
 
 export interface AuthenticatedRequest extends Request {
-  user?: { id: string; email: string; firstName: string; lastName: string };
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    jobTitle?: string | null;
+    location?: string | null;
+    bio?: string | null;
+  };
   sessionToken?: string;
 }
 
@@ -13,7 +21,7 @@ export async function getUserForToken(token: string) {
   if (!token) return null;
 
   const result = await pool.query(
-    `SELECT cu.id, cu.email, cu.first_name, cu.last_name
+    `SELECT cu.id, cu.email, cu.first_name, cu.last_name, cu.job_title, cu.location, cu.bio
      FROM cc_user_sessions cus
      JOIN cc_users cu ON cu.id = cus.user_id
      WHERE cus.session_token = $1
@@ -31,6 +39,9 @@ export async function getUserForToken(token: string) {
     email: user.email,
     firstName: user.first_name,
     lastName: user.last_name,
+    jobTitle: user.job_title,
+    location: user.location,
+    bio: user.bio,
   };
 }
 

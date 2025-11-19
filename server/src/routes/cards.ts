@@ -131,4 +131,26 @@ router.get('/:id', requireAuth, async (req: AuthenticatedRequest, res, next) => 
   }
 });
 
+router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const idResult = z.string().uuid({ message: 'Invalid card id' }).safeParse(req.params.id);
+    if (!idResult.success) {
+      return res.status(400).json({ error: 'Invalid card id' });
+    }
+
+    const result = await pool.query(
+      `DELETE FROM cc_career_cards WHERE id = $1 AND user_id = $2`,
+      [idResult.data, req.user!.id]
+    );
+
+    if ((result.rowCount ?? 0) === 0) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

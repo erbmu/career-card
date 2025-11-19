@@ -5,6 +5,9 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  jobTitle?: string | null;
+  location?: string | null;
+  bio?: string | null;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -63,6 +66,11 @@ export const cardApi = {
   async listCards() {
     return request<{ cards: CardRecord[] }>('/cards');
   },
+  async deleteCard(id: string) {
+    return request<{ success: boolean }>(`/cards/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export const authApi = {
@@ -85,6 +93,24 @@ export const authApi = {
   },
   me() {
     return request<{ user: AuthUser }>('/auth/me');
+  },
+  updateProfile(payload: {
+    firstName: string;
+    lastName: string;
+    jobTitle?: string;
+    location?: string;
+    bio?: string;
+  }) {
+    return request<{ user: AuthUser }>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  updatePassword(payload: { currentPassword: string; newPassword: string }) {
+    return request<{ success: boolean }>('/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
   },
 };
 
