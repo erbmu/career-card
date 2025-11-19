@@ -1,12 +1,12 @@
 # Career Card Builder
 
-A React + Tailwind interface for creating rich career cards backed by an Express API, Neon PostgreSQL for persistence, and OpenAI for the AI-assisted import flows. Accounts are now required: each user signs up/logs in before creating, viewing, or downloading their own card, reviews everything from the dashboard grid, and can manage their details from the Settings page.
+A React + Tailwind interface for creating rich career cards backed by an Express API, Neon PostgreSQL for persistence, and Google Gemini for the AI-assisted import flows. Accounts are now required: each user signs up/logs in before creating, viewing, or downloading their own card, reviews everything from the dashboard grid, and can manage their details from the Settings page.
 
 ## Tech Stack
 - Vite + React + TypeScript + Tailwind UI
 - Express API with CORS + static hosting
 - Neon PostgreSQL (`pg` driver)
-- OpenAI Chat Completions API for resume and portfolio parsing
+- Google Gemini Generative API for resume and portfolio parsing
 
 ## Local Development
 1. Install dependencies:
@@ -90,7 +90,7 @@ All configuration lives in `.env` (use `.env.example` as a guide). These are the
 | `VITE_API_BASE_URL` | frontend | Base URL for API calls. Use `http://localhost:4000/api` locally or your Render URL in production. |
 | `DATABASE_URL` | server | Full Neon connection string with `sslmode=require`. |
 | `GEMINI_API_KEY` | server | Key used by the AI routes for parsing and scoring. |
-| `OPENAI_MODEL` | optional | Defaults to `gpt-4o-mini`. Override if you prefer another OpenAI model. |
+| `GEMINI_MODEL` | optional | Defaults to `gemini-1.5-flash`. Override if you prefer another Gemini model. |
 | `CLIENT_ORIGIN` | server | Comma-separated list of allowed origins, e.g. `http://localhost:5173,https://yourdomain.com`. |
 | `PORT` | optional | API port (defaults to `4000`). |
 

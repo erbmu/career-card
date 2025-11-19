@@ -4,7 +4,7 @@ import { careerCardDataSchema } from '../../../src/shared/career-card-schema.js'
 import { AuthenticatedRequest, requireAuth } from '../utils/auth.js';
 
 const router = Router();
-const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash';
 
 function requireAIKey(): string {
   const key = process.env.GEMINI_API_KEY;
@@ -14,43 +14,61 @@ function requireAIKey(): string {
   return key;
 }
 
-async function callOpenAI(payload: Record<string, unknown>) {
+async function callGemini(payload: Record<string, unknown>) {
   const apiKey = requireAIKey();
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenAI request failed: ${response.status} ${errorText}`);
+    throw new Error(`Gemini request failed: ${response.status} ${errorText}`);
   }
 
   return response.json();
 }
 
-function parseAssistantJson(response: any) {
-  const message = response?.choices?.[0]?.message;
-  if (!message) {
+function parseGeminiJson(response: any) {
+  const parts = response?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) {
     throw new Error('Invalid AI response');
   }
 
-  if (typeof message.content === 'string') {
-    return JSON.parse(message.content);
+  const textPart = parts.find((part: any) => typeof part?.text === 'string');
+  if (!textPart?.text) {
+    throw new Error('Unable to parse AI response payload');
   }
 
-  if (Array.isArray(message.content)) {
-    const textPart = message.content.find((part: any) => part.type === 'text' || part.type === 'output_text');
-    if (textPart?.text) {
-      return JSON.parse(textPart.text);
-    }
-  }
+  return JSON.parse(textPart.text);
+}
 
-  throw new Error('Unable to parse AI response payload');
+function toInlineImagePart(dataUrl: string) {
+  const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
+  if (!match) {
+    throw new Error('Invalid image data format');
+  }
+  const [, mimeType, data] = match;
+  return {
+    inlineData: {
+      mimeType,
+      data,
+    },
+  };
+}
+
+function buildJsonConfig() {
+  return {
+    generationConfig: {
+      responseMimeType: 'application/json',
+    },
+  };
 }
 
 const parseResumeSchema = z.object({
@@ -67,41 +85,42 @@ router.post('/parse-resume', async (req: AuthenticatedRequest, res, next) => {
       return res.status(400).json({ error: 'Provide resume text or an image to parse' });
     }
 
-    const messages: any[] = [
-      {
-        role: 'system',
-        content: 'You extract structured data for a career card. Always respond with valid JSON matching the requested shape.',
-      },
-    ];
+    const systemPrompt =
+      'You extract structured data for a career card. Always respond with valid JSON containing profile, experience, frameworks, projects, codeShowcase, pastimes, stylesOfWork, and greatestImpacts.';
+
+    const contents: any[] = [];
 
     if (parsed.data.imageData) {
-      messages.push({
+      contents.push({
         role: 'user',
-        content: [
+        parts: [
           {
-            type: 'input_text',
-            text: 'Extract all visible information from this career card image and return JSON with profile, experience, frameworks, projects, codeShowcase, pastimes, stylesOfWork, greatestImpacts.',
+            text: 'Extract all visible information from this career card image and return the structured JSON described in the instructions.',
           },
-          {
-            type: 'input_image',
-            image_url: { url: parsed.data.imageData },
-          },
+          toInlineImagePart(parsed.data.imageData),
         ],
       });
     } else if (parsed.data.resumeText) {
-      messages.push({
+      contents.push({
         role: 'user',
-        content: `Resume text:\n${parsed.data.resumeText}`,
+        parts: [
+          {
+            text: `Resume text:\n${parsed.data.resumeText}\n\nReturn structured JSON with profile, experience, frameworks, projects, codeShowcase, pastimes, stylesOfWork, greatestImpacts.`,
+          },
+        ],
       });
     }
 
-    const completion = await callOpenAI({
-      model: OPENAI_MODEL,
-      response_format: { type: 'json_object' },
-      messages,
+    const completion = await callGemini({
+      contents,
+      systemInstruction: {
+        role: 'system',
+        parts: [{ text: systemPrompt }],
+      },
+      ...buildJsonConfig(),
     });
 
-    const result = parseAssistantJson(completion);
+    const result = parseGeminiJson(completion);
     return res.json(result);
   } catch (error) {
     next(error);
@@ -119,22 +138,29 @@ router.post('/parse-resume-experience', async (req: AuthenticatedRequest, res, n
       return res.status(400).json({ error: parsed.error.errors[0]?.message ?? 'Invalid resume text' });
     }
 
-    const completion = await callOpenAI({
-      model: OPENAI_MODEL,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You extract work experience and project entries from resumes. Always return JSON with experiences and projects arrays.',
-        },
+    const completion = await callGemini({
+      contents: [
         {
           role: 'user',
-          content: `Extract structured work experience entries AND project entries from this resume text. Resume:\n${parsed.data.resumeText}`,
+          parts: [
+            {
+              text: `Extract structured work experience entries AND project entries from this resume text. Resume:\n${parsed.data.resumeText}`,
+            },
+          ],
         },
       ],
+      systemInstruction: {
+        role: 'system',
+        parts: [
+          {
+            text: 'You extract work experience and project entries from resumes. Always return JSON with experiences and projects arrays.',
+          },
+        ],
+      },
+      ...buildJsonConfig(),
     });
 
-    const result = parseAssistantJson(completion);
+    const result = parseGeminiJson(completion);
     return res.json(result);
   } catch (error) {
     next(error);
@@ -246,22 +272,29 @@ router.post('/parse-portfolio', async (req: AuthenticatedRequest, res, next) => 
       .trim()
       .slice(0, 15_000);
 
-    const completion = await callOpenAI({
-      model: OPENAI_MODEL,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You analyze developer portfolios and return structured data with profile, projects, and frameworks.',
-        },
+    const completion = await callGemini({
+      contents: [
         {
           role: 'user',
-          content: `Portfolio URL: ${portfolioUrl}\n\nContent:\n${textContent}`,
+          parts: [
+            {
+              text: `Portfolio URL: ${portfolioUrl}\n\nContent:\n${textContent}\n\nSummarize into structured JSON containing profile highlights, notable projects, and frameworks/technologies.`,
+            },
+          ],
         },
       ],
+      systemInstruction: {
+        role: 'system',
+        parts: [
+          {
+            text: 'You analyze developer portfolios and return structured data with profile, projects, and frameworks.',
+          },
+        ],
+      },
+      ...buildJsonConfig(),
     });
 
-    const result = parseAssistantJson(completion);
+    const result = parseGeminiJson(completion);
     return res.json({ success: true, data: result, codeFiles });
   } catch (error) {
     next(error);
@@ -283,22 +316,31 @@ router.post('/score-career-card', async (req: AuthenticatedRequest, res, next) =
 
     const { careerCardData, companyDescription, roleDescription } = parsed.data;
 
-    const completion = await callOpenAI({
-      model: OPENAI_MODEL,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an interviewing assistant that scores how well a career card fits a company and role. Respond with scores between 0 and 100 and actionable feedback.',
-        },
+    const completion = await callGemini({
+      contents: [
         {
           role: 'user',
-          content: `Company description: ${companyDescription}\nRole description: ${roleDescription}\nCareer card data: ${JSON.stringify(careerCardData)}`,
+          parts: [
+            {
+              text: `Company description: ${companyDescription}\nRole description: ${roleDescription}\nCareer card data: ${JSON.stringify(
+                careerCardData
+              )}`,
+            },
+          ],
         },
       ],
+      systemInstruction: {
+        role: 'system',
+        parts: [
+          {
+            text: 'You are an interviewing assistant that scores how well a career card fits a company and role. Respond with scores between 0 and 100 and actionable feedback.',
+          },
+        ],
+      },
+      ...buildJsonConfig(),
     });
 
-    const result = parseAssistantJson(completion);
+    const result = parseGeminiJson(completion);
     return res.json(result);
   } catch (error) {
     next(error);
