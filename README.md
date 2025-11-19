@@ -89,7 +89,7 @@ All configuration lives in `.env` (use `.env.example` as a guide). These are the
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | frontend | Base URL for API calls. Use `http://localhost:4000/api` locally or your Render URL in production. |
 | `DATABASE_URL` | server | Full Neon connection string with `sslmode=require`. |
-| `OPENAI_API_KEY` | server | Key used by the AI routes for parsing and scoring. |
+| `GEMINI_API_KEY` | server | Key used by the AI routes for parsing and scoring. |
 | `OPENAI_MODEL` | optional | Defaults to `gpt-4o-mini`. Override if you prefer another OpenAI model. |
 | `CLIENT_ORIGIN` | server | Comma-separated list of allowed origins, e.g. `http://localhost:5173,https://yourdomain.com`. |
 | `PORT` | optional | API port (defaults to `4000`). |

@@ -6,16 +6,16 @@ import { AuthenticatedRequest, requireAuth } from '../utils/auth.js';
 const router = Router();
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 
-function requireOpenAIKey(): string {
-  const key = process.env.OPENAI_API_KEY;
+function requireAIKey(): string {
+  const key = process.env.GEMINI_API_KEY;
   if (!key) {
-    throw new Error('OPENAI_API_KEY is not configured');
+    throw new Error('GEMINI_API_KEY is not configured');
   }
   return key;
 }
 
 async function callOpenAI(payload: Record<string, unknown>) {
-  const apiKey = requireOpenAIKey();
+  const apiKey = requireAIKey();
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
