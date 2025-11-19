@@ -4,7 +4,7 @@ import { careerCardDataSchema } from '../../../src/shared/career-card-schema.js'
 import { AuthenticatedRequest, requireAuth } from '../utils/auth.js';
 
 const router = Router();
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash-latest';
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.0-flash';
 
 function requireAIKey(): string {
   const key = process.env.GEMINI_API_KEY;

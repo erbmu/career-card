@@ -90,7 +90,7 @@ All configuration lives in `.env` (use `.env.example` as a guide). These are the
 | `VITE_API_BASE_URL` | frontend | Base URL for API calls. Use `http://localhost:4000/api` locally or your Render URL in production. |
 | `DATABASE_URL` | server | Full Neon connection string with `sslmode=require`. |
 | `GEMINI_API_KEY` | server | Key used by the AI routes for parsing and scoring. |
-| `GEMINI_MODEL` | optional | Defaults to `gemini-1.5-flash-latest`. Override if you prefer another Gemini model. |
+| `GEMINI_MODEL` | optional | Defaults to `gemini-2.0-flash`. Override if you prefer another Gemini model. |
 | `CLIENT_ORIGIN` | server | Comma-separated list of allowed origins, e.g. `http://localhost:5173,https://yourdomain.com`. |
 | `PORT` | optional | API port (defaults to `4000`). |
 
