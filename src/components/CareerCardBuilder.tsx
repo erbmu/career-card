@@ -18,70 +18,19 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { careerCardDataSchema, logger } from "@/lib/validation";
 import { useAuth } from "@/context/AuthContext";
+import { CareerCardData } from "@/types/career-card";
 
-export interface CareerCardData {
-  profile: {
-    name: string;
-    title: string;
-    location: string;
-    imageUrl: string;
-    portfolioUrl?: string;
-  };
-  theme?: 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'slate';
-  experience: Array<{
-    id: string;
-    title: string;
-    company: string;
-    period: string;
-    description: string;
-  }>;
-  projects: Array<{
-    id: string;
-    name: string;
-    description: string;
-    technologies: string;
-    projectUrl?: string;
-  }>;
-  greatestImpacts: Array<{
-    id: string;
-    title: string;
-    context: string;
-    outcome?: string;
-  }>;
-  stylesOfWork: Array<{
-    id: string;
-    question: string;
-    selectedAnswer: string;
-  }>;
-  frameworks: Array<{
-    id: string;
-    name: string;
-    proficiency: string;
-    projectsBuilt?: string;
-  }>;
-  pastimes: Array<{
-    id: string;
-    activity: string;
-    description: string;
-  }>;
-  codeShowcase: Array<{
-    id: string;
-    fileName: string;
-    language: string;
-    code: string;
-    caption?: string;
-    repo?: string;
-    url?: string;
-  }>;
+interface CareerCardBuilderProps {
+  cardId: string;
 }
 
-const CareerCardBuilder = () => {
+const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
   const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [sharedCardId, setSharedCardId] = useState<string | null>(null);
+  const [activeCardId, setActiveCardId] = useState<string>(cardId);
   const [isLoadingCard, setIsLoadingCard] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
   const [cardData, setCardData] = useState<CareerCardData>({
@@ -108,24 +57,29 @@ const CareerCardBuilder = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    setActiveCardId(cardId);
+  }, [cardId]);
+
+  useEffect(() => {
+    if (!user || !cardId) return;
     setIsLoadingCard(true);
-    const loadExistingCard = async () => {
+    const loadCard = async () => {
       try {
-        const existing = await cardApi.fetchMyCard();
-        if (existing?.id && existing.cardData) {
-          setSharedCardId(existing.id);
+        const existing = await cardApi.fetchCard(cardId);
+        if (existing?.cardData) {
           setCardData(existing.cardData as CareerCardData);
+          setActiveCardId(existing.id);
         }
       } catch (error) {
         logger.error('Failed to load saved card', error);
+        toast.error('Unable to load this career card.');
       } finally {
         setIsLoadingCard(false);
       }
     };
 
-    loadExistingCard();
-  }, [user]);
+    loadCard();
+  }, [user, cardId]);
 
   useEffect(() => {
     if (!lockedName) return;
@@ -160,18 +114,18 @@ const CareerCardBuilder = () => {
       }
 
       // Save or update the card data
-      let cardId = sharedCardId;
+      let cardIdentifier = activeCardId;
       
-      if (cardId) {
-        await cardApi.updateCard(cardId, validationResult.data as CareerCardData);
+      if (cardIdentifier) {
+        await cardApi.updateCard(cardIdentifier, validationResult.data as CareerCardData);
       } else {
         const created = await cardApi.createCard(validationResult.data as CareerCardData);
-        cardId = created.id;
-        setSharedCardId(created.id);
+        cardIdentifier = created.id;
+        setActiveCardId(created.id);
       }
 
       // Copy link to clipboard
-      const shareUrl = `${window.location.origin}/card/${cardId}`;
+      const shareUrl = `${window.location.origin}/card/${cardIdentifier}`;
       await navigator.clipboard.writeText(shareUrl);
       
       setLinkCopied(true);
@@ -296,6 +250,12 @@ const CareerCardBuilder = () => {
       newCardData.profile = {
         ...newCardData.profile,
         ...importedData.profile,
+      };
+    }
+    if (lockedName) {
+      newCardData.profile = {
+        ...newCardData.profile,
+        name: lockedName,
       };
     }
     if (lockedName) {

@@ -1,4 +1,4 @@
-import type { CareerCardData } from '@/components/CareerCardBuilder';
+import type { CareerCardData } from '@/types/career-card';
 
 export interface AuthUser {
   id: string;
@@ -37,9 +37,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export interface CardRecord {
+  id: string;
+  cardData: CareerCardData;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const cardApi = {
   async createCard(cardData: CareerCardData) {
-    return request<{ id: string; editToken: string }>('/cards', {
+    return request<CardRecord & { editToken: string }>('/cards', {
       method: 'POST',
       body: JSON.stringify({ cardData }),
     });
@@ -51,11 +58,10 @@ export const cardApi = {
     });
   },
   async fetchCard(id: string) {
-    const data = await request<{ cardData: CareerCardData }>(`/cards/${id}`);
-    return data.cardData;
+    return request<CardRecord>(`/cards/${id}`);
   },
-  async fetchMyCard() {
-    return request<{ id: string | null; cardData: CareerCardData | null }>('/cards/me');
+  async listCards() {
+    return request<{ cards: CardRecord[] }>('/cards');
   },
 };
 

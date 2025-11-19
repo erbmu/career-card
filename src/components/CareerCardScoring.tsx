@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Award, TrendingUp, TrendingDown, Upload, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { CareerCardData } from "./CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 import * as pdfjsLib from 'pdfjs-dist';
 import { aiApi } from "@/lib/api";
 

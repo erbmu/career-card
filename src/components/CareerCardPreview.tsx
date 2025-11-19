@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Briefcase, FolderGit2, Sparkles, Workflow, Code2, Heart, ExternalLink, FileCode } from "lucide-react";
-import { CareerCardData } from "./CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { CareerCardScoring } from "@/components/CareerCardScoring";
-import { CareerCardData } from "@/components/CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 
 const ScoreCard = () => {
   const navigate = useNavigate();

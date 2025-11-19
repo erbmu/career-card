@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Code2, Plus, Trash2, Link as LinkIcon, Loader2 } from "lucide-react";
-import { CareerCardData } from "../CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 import {
   Select,
   SelectContent,

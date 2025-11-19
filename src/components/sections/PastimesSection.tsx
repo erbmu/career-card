@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Heart, Plus, Trash2 } from "lucide-react";
-import { CareerCardData } from "../CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 
 interface PastimesSectionProps {
   data: CareerCardData["pastimes"];

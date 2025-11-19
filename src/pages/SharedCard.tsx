@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { CareerCardPreview } from "@/components/CareerCardPreview";
-import { CareerCardData } from "@/components/CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 import { Loader2 } from "lucide-react";
 import { logger } from "@/lib/validation";
 import { cardApi } from "@/lib/api";
@@ -34,8 +34,8 @@ const SharedCard = () => {
 
       try {
         const card = await cardApi.fetchCard(id);
-        if (card) {
-          setCardData(card as CareerCardData);
+        if (card?.cardData) {
+          setCardData(card.cardData as CareerCardData);
         } else {
           setError("Card not found");
         }

@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS cc_career_cards (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_career_cards_user ON cc_career_cards (user_id);
+CREATE INDEX IF NOT EXISTS idx_cc_career_cards_user ON cc_career_cards (user_id);
 
 CREATE INDEX IF NOT EXISTS idx_cc_career_cards_updated_at ON cc_career_cards (updated_at DESC);
 ```

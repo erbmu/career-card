@@ -1,21 +1,27 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CareerCardBuilder from "@/components/CareerCardBuilder";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-const Index = () => {
-  const { user, loading, logout } = useAuth();
+const BuilderPage = () => {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth", { replace: true });
+      navigate("/auth", { replace: true, state: { from: `/builder/${id}` } });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, id]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && user && !id) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, id, navigate]);
+
+  if (loading || !id || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -23,26 +29,7 @@ const Index = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Signed in as</p>
-            <p className="font-medium">{user.email}</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={logout}>
-            Log Out
-          </Button>
-        </div>
-      </div>
-      <CareerCardBuilder />
-    </div>
-  );
+  return <CareerCardBuilder cardId={id} />;
 };
 
-export default Index;
+export default BuilderPage;

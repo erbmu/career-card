@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FolderGit2, Plus, Trash2, Link as LinkIcon } from "lucide-react";
-import { CareerCardData } from "../CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 
 interface ProjectsSectionProps {
   data: CareerCardData["projects"];

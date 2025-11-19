@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Workflow } from "lucide-react";
-import { CareerCardData } from "../CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 
 interface StylesOfWorkSectionProps {
   data: CareerCardData["stylesOfWork"];

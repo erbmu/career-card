@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { User, Upload, Loader2 } from "lucide-react";
-import { CareerCardData } from "../CareerCardBuilder";
+import { CareerCardData } from "@/types/career-card";
 import { toast } from "sonner";
 import { useState, useRef } from "react";
 
