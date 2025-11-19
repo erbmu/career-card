@@ -46,22 +46,22 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6fb] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-[#f6f0ff] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <p className="text-4xl font-semibold tracking-tight text-slate-900">
-            Recrio <span className="text-slate-400 font-normal">— Career Cards</span>
+          <p className="text-4xl font-semibold tracking-tight text-[#3b1d8d]">
+            Recrio <span className="text-[#b6a4f7] font-normal">— Career Cards</span>
           </p>
-          <p className="text-sm text-slate-500 mt-3">
+          <p className="text-sm text-[#5f35c5] mt-3">
             {isLogin ? "Access your saved cards in seconds." : "Create your profile in a couple of clicks."}
           </p>
         </div>
-        <div className="rounded-[32px] border border-slate-100 bg-white shadow-[0_25px_80px_rgba(15,23,42,0.08)] p-8">
+        <div className="rounded-[32px] border border-[#e0d4ff] bg-white shadow-[0_30px_80px_rgba(60,7,112,0.12)] p-8">
           <div className="text-center space-y-1 mb-6">
-            <p className="text-2xl font-semibold text-slate-900">
+            <p className="text-2xl font-semibold text-[#2a0d68]">
               {isLogin ? "Sign in to Career Card" : "Create your account"}
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#6b4ccc]">
               {isLogin ? "Use your Recrio credentials to continue." : "A few details and you're in."}
             </p>
           </div>
@@ -69,7 +69,7 @@ const Auth = () => {
             {!isLogin && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className="text-sm font-medium text-slate-700">
+                  <Label htmlFor="firstName" className="text-sm font-medium text-[#4a2da5]">
                     First name
                   </Label>
                   <Input
@@ -78,11 +78,11 @@ const Auth = () => {
                     onChange={(e) => setFirstName(e.target.value)}
                     required={!isLogin}
                     placeholder="Alex"
-                    className="h-11 rounded-2xl border-slate-200 text-base placeholder:text-slate-400 focus-visible:ring-slate-900/20"
+                    className="h-11 rounded-2xl border-[#e0d4ff] text-base placeholder:text-[#c0b2ef] focus-visible:ring-[#7c4dff]/30"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className="text-sm font-medium text-slate-700">
+                  <Label htmlFor="lastName" className="text-sm font-medium text-[#4a2da5]">
                     Last name
                   </Label>
                   <Input
@@ -91,13 +91,13 @@ const Auth = () => {
                     onChange={(e) => setLastName(e.target.value)}
                     required={!isLogin}
                     placeholder="Morgan"
-                    className="h-11 rounded-2xl border-slate-200 text-base placeholder:text-slate-400 focus-visible:ring-slate-900/20"
+                    className="h-11 rounded-2xl border-[#e0d4ff] text-base placeholder:text-[#c0b2ef] focus-visible:ring-[#7c4dff]/30"
                   />
                 </div>
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="email" className="text-sm font-medium text-[#4a2da5]">
                 Email address
               </Label>
               <Input
@@ -107,11 +107,11 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="h-11 rounded-2xl border-slate-200 text-base placeholder:text-slate-400 focus-visible:ring-slate-900/20"
+                className="h-11 rounded-2xl border-[#e0d4ff] text-base placeholder:text-[#c0b2ef] focus-visible:ring-[#7c4dff]/30"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="password" className="text-sm font-medium text-[#4a2da5]">
                 Password
               </Label>
               <Input
@@ -122,23 +122,23 @@ const Auth = () => {
                 required
                 minLength={8}
                 placeholder="At least 8 characters"
-                className="h-11 rounded-2xl border-slate-200 text-base placeholder:text-slate-400 focus-visible:ring-slate-900/20"
+                className="h-11 rounded-2xl border-[#e0d4ff] text-base placeholder:text-[#c0b2ef] focus-visible:ring-[#7c4dff]/30"
               />
             </div>
             <Button
               type="submit"
-              className="w-full h-11 rounded-full bg-slate-900 text-white text-sm font-semibold tracking-wide hover:bg-slate-800 transition-colors"
+              className="w-full h-11 rounded-full bg-[#7c4dff] text-white text-sm font-semibold tracking-wide hover:bg-[#6a3ee6] transition-colors"
               disabled={pending || loading}
             >
               {pending ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
-          <p className="text-center text-sm text-slate-500 mt-8">
+          <p className="text-center text-sm text-[#6b4ccc] mt-8">
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="font-semibold text-slate-900 hover:underline"
+              className="font-semibold text-[#4a2da5] hover:underline"
             >
               {isLogin ? "Sign up" : "Sign in"}
             </button>
