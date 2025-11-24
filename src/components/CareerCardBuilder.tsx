@@ -19,6 +19,7 @@ import jsPDF from "jspdf";
 import { careerCardDataSchema, logger } from "@/lib/validation";
 import { useAuth } from "@/context/AuthContext";
 import { CareerCardData } from "@/types/career-card";
+import { useNavigate } from "react-router-dom";
 
 interface CareerCardBuilderProps {
   cardId: string;
@@ -26,6 +27,7 @@ interface CareerCardBuilderProps {
 
 const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -325,12 +327,16 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="text-left"
+          >
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Career Card Builder
             </h1>
             <p className="text-sm text-muted-foreground">Create your comprehensive career profile</p>
-          </div>
+          </button>
           <div className="flex gap-3">
             <Button
               variant="outline"
