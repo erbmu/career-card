@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Eye, Edit3, Link, Check, Loader2 } from "lucide-react";
+import { Download, Eye, Edit3, Loader2, Save } from "lucide-react";
 import { cardApi } from "@/lib/api";
 import { ProfileSection } from "./sections/ProfileSection";
 import { ExperienceSection } from "./sections/ExperienceSection";
@@ -20,6 +20,7 @@ import { careerCardDataSchema, logger } from "@/lib/validation";
 import { useAuth } from "@/context/AuthContext";
 import { CareerCardData } from "@/types/career-card";
 import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 
 interface CareerCardBuilderProps {
   cardId: string;
@@ -30,12 +31,14 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
   const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string>(cardId);
   const [isLoadingCard, setIsLoadingCard] = useState(true);
   const [forceExpandPreview, setForceExpandPreview] = useState(false);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cardData, setCardData] = useState<CareerCardData>({
     profile: {
       name: "",
@@ -63,21 +66,63 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
     setActiveCardId(cardId);
   }, [cardId]);
 
+  const persistCard = useCallback(
+    async (data: CareerCardData, options: { silent?: boolean } = {}) => {
+      if (!activeCardId) return false;
+
+      const validationResult = careerCardDataSchema.safeParse(data);
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        if (options.silent) {
+          logger.warn("Validation failed during auto-save", validationResult.error.errors);
+        } else {
+          toast.error(`Validation failed: ${firstError.message} at ${firstError.path.join(".")}`);
+        }
+        return false;
+      }
+
+      try {
+        setIsSaving(true);
+        await cardApi.updateCard(activeCardId, validationResult.data as CareerCardData);
+        const now = new Date();
+        setLastSavedAt(now);
+        if (!options.silent) {
+          toast.success("Changes saved");
+        }
+        return true;
+      } catch (error) {
+        logger.error("Save error:", error);
+        if (!options.silent) {
+          toast.error("Failed to save changes. Please try again.");
+        }
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [activeCardId]
+  );
+
   useEffect(() => {
     if (!user || !cardId) return;
     setIsLoadingCard(true);
+    setHasLoadedInitialData(false);
     const loadCard = async () => {
       try {
         const existing = await cardApi.fetchCard(cardId);
         if (existing?.cardData) {
           setCardData(existing.cardData as CareerCardData);
           setActiveCardId(existing.id);
+          if (existing.updatedAt) {
+            setLastSavedAt(new Date(existing.updatedAt));
+          }
         }
       } catch (error) {
         logger.error('Failed to load saved card', error);
         toast.error('Unable to load this career card.');
       } finally {
         setIsLoadingCard(false);
+        setHasLoadedInitialData(true);
       }
     };
 
@@ -100,48 +145,25 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
     });
   }, [lockedName]);
 
-  const handleShareCard = async () => {
-    try {
-      setIsSharing(true);
-      toast.loading("Generating shareable link...");
-
-      // Validate card data before saving
-      const validationResult = careerCardDataSchema.safeParse(cardData);
-      
-      if (!validationResult.success) {
-        const firstError = validationResult.error.errors[0];
-        toast.error(`Validation failed: ${firstError.message} at ${firstError.path.join('.')}`);
-        logger.error('Validation errors:', validationResult.error.errors);
-        setIsSharing(false);
-        return;
-      }
-
-      // Save or update the card data
-      let cardIdentifier = activeCardId;
-      
-      if (cardIdentifier) {
-        await cardApi.updateCard(cardIdentifier, validationResult.data as CareerCardData);
-      } else {
-        const created = await cardApi.createCard(validationResult.data as CareerCardData);
-        cardIdentifier = created.id;
-        setActiveCardId(created.id);
-      }
-
-      // Copy link to clipboard
-      const shareUrl = `${window.location.origin}/card/${cardIdentifier}`;
-      await navigator.clipboard.writeText(shareUrl);
-      
-      setLinkCopied(true);
-      toast.success("Link copied to clipboard!");
-      
-      setTimeout(() => setLinkCopied(false), 3000);
-    } catch (error) {
-      logger.error("Share error:", error);
-      toast.error("Failed to generate shareable link. Please try again.");
-    } finally {
-      setIsSharing(false);
+  useEffect(() => {
+    if (!hasLoadedInitialData || !activeCardId) {
+      return;
     }
-  };
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      persistCard(cardData, { silent: true });
+    }, 1200);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [cardData, hasLoadedInitialData, activeCardId, persistCard]);
 
   const wait = (ms = 100) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -162,6 +184,15 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
     return Boolean(previewRef.current);
   };
 
+  const handleSaveNow = async () => {
+    if (!hasLoadedInitialData || !activeCardId) return;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    await persistCard(cardData);
+  };
+
   const handleExport = async () => {
     try {
       setIsExporting(true);
@@ -177,46 +208,25 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
       // Capture the preview card as canvas
       const canvas = await html2canvas(previewRef.current, {
         backgroundColor: "#ffffff",
-        scale: 1.2, // Balanced quality and file size
+        scale: 1.5,
         logging: false,
         useCORS: true,
       });
 
-      // A4 dimensions
-      const pdfWidth = 210; // A4 width in mm
-      const pdfHeight = 297; // A4 height in mm
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Create PDF
+      const pxToMm = (px: number) => (px * 25.4) / 96;
+      const pageWidth = Math.max(pxToMm(canvas.width), 50);
+      const pageHeight = Math.max(pxToMm(canvas.height), 50);
+      const orientation = pageWidth > pageHeight ? "landscape" : "portrait";
+
+      // Create PDF sized exactly to the card so it fills the page
       const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
+        orientation,
+        unit: "mm",
+        format: [pageWidth, pageHeight],
       });
-      
-      const imgData = canvas.toDataURL('image/jpeg', 0.85); // JPEG with 85% quality for smaller file size
-      
-      // If content fits on one page, add it directly
-      if (imgHeight <= pdfHeight) {
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-      } else {
-        // Split content across multiple pages
-        let heightLeft = imgHeight;
-        let position = 0;
-        
-        // Add first page
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-        
-        // Add remaining pages
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pdfHeight;
-        }
-      }
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
       
       // Download PDF
       pdf.save(`${cardData.profile.name || "career-card"}_${new Date().getTime()}.pdf`);
@@ -326,7 +336,7 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
     <div className="min-h-screen bg-[hsl(var(--editor-bg))]">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -337,23 +347,41 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
             </h1>
             <p className="text-sm text-muted-foreground">Create your comprehensive career profile</p>
           </button>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowPreview(!showPreview)}
-              className="gap-2"
-            >
-              {showPreview ? <Edit3 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {showPreview ? "Edit" : "Preview"}
-            </Button>
-            <Button onClick={handleShareCard} className="gap-2" disabled={isSharing}>
-              {linkCopied ? <Check className="h-4 w-4" /> : <Link className="h-4 w-4" />}
-              {isSharing ? "Generating..." : linkCopied ? "Link Copied!" : "Share Card"}
-            </Button>
-            <Button onClick={handleExport} variant="outline" className="gap-2" disabled={isExporting}>
-              <Download className="h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export PDF"}
-            </Button>
+          <div className="flex items-end gap-4 flex-wrap justify-end">
+            <div className="text-xs text-muted-foreground min-w-[140px] text-right">
+              {isSaving ? (
+                <span className="inline-flex items-center gap-1 text-primary">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving...
+                </span>
+              ) : lastSavedAt ? (
+                <>Saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}</>
+              ) : (
+                "Changes auto-save"
+              )}
+            </div>
+            <div className="flex gap-3 flex-wrap justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowPreview(!showPreview)}
+                className="gap-2"
+              >
+                {showPreview ? <Edit3 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPreview ? "Edit" : "Preview"}
+              </Button>
+              <Button
+                onClick={handleSaveNow}
+                className="gap-2"
+                disabled={isSaving || !activeCardId}
+              >
+                <Save className="h-4 w-4" />
+                Save Now
+              </Button>
+              <Button onClick={handleExport} variant="outline" className="gap-2" disabled={isExporting}>
+                <Download className="h-4 w-4" />
+                {isExporting ? "Exporting..." : "Export PDF"}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
