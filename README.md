@@ -82,6 +82,9 @@ The API writes to these tables through the `/api/auth/*` and `/api/cards/*` endp
 ## Temporarily Disabled Features
 - The AI-powered score/report generator is intentionally hidden from the UI for now. The supporting code remains in the repo so it can be re-enabled later without re-implementing it.
 
+## Resume Parsing
+The resume import flow now uses a lightweight heuristic parser instead of an external AI API. When you upload a PDF, the browser extracts the raw text with PDF.js and the API (`server/src/utils/resume-parser.ts`) looks for common experience/project patterns plus tech keywords—no Gemini/OpenAI calls are made for this step anymore.
+
 ## Environment Variables
 All configuration lives in `.env` (use `.env.example` as a guide). These are the variables Render/Neon will need:
 

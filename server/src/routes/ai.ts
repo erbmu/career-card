@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { careerCardDataSchema } from '../../../src/shared/career-card-schema.js';
 import { AuthenticatedRequest, requireAuth } from '../utils/auth.js';
+import { buildResumeCardData, extractExperiencesAndProjects } from '../utils/resume-parser.js';
 
 const router = Router();
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.0-flash';
@@ -49,20 +50,6 @@ function parseGeminiJson(response: any) {
   return JSON.parse(textPart.text);
 }
 
-function toInlineImagePart(dataUrl: string) {
-  const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
-  if (!match) {
-    throw new Error('Invalid image data format');
-  }
-  const [, mimeType, data] = match;
-  return {
-    inlineData: {
-      mimeType,
-      data,
-    },
-  };
-}
-
 function buildJsonConfig() {
   return {
     generationConfig: {
@@ -81,46 +68,21 @@ router.use(requireAuth);
 router.post('/parse-resume', async (req: AuthenticatedRequest, res, next) => {
   try {
     const parsed = parseResumeSchema.safeParse(req.body);
-    if (!parsed.success || (!parsed.data.resumeText && !parsed.data.imageData)) {
-      return res.status(400).json({ error: 'Provide resume text or an image to parse' });
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0]?.message ?? 'Invalid payload' });
     }
 
-    const systemPrompt =
-      'You extract structured data for a career card. Always respond with valid JSON containing profile, experience, frameworks, projects, codeShowcase, pastimes, stylesOfWork, and greatestImpacts.';
-
-    const contents: any[] = [];
-
-    if (parsed.data.imageData) {
-      contents.push({
-        role: 'user',
-        parts: [
-          {
-            text: 'Extract all visible information from this career card image and return the structured JSON described in the instructions.',
-          },
-          toInlineImagePart(parsed.data.imageData),
-        ],
-      });
-    } else if (parsed.data.resumeText) {
-      contents.push({
-        role: 'user',
-        parts: [
-          {
-            text: `Resume text:\n${parsed.data.resumeText}\n\nReturn structured JSON with profile, experience, frameworks, projects, codeShowcase, pastimes, stylesOfWork, greatestImpacts.`,
-          },
-        ],
-      });
+    const resumeText = parsed.data.resumeText?.trim();
+    if (!resumeText) {
+      if (parsed.data.imageData) {
+        return res.status(400).json({
+          error: 'Image parsing is not supported in the cost-optimized mode. Please extract the PDF text and send it as resumeText.',
+        });
+      }
+      return res.status(400).json({ error: 'Provide resume text extracted from your resume or PDF.' });
     }
 
-    const completion = await callGemini({
-      contents,
-      systemInstruction: {
-        role: 'system',
-        parts: [{ text: systemPrompt }],
-      },
-      ...buildJsonConfig(),
-    });
-
-    const result = parseGeminiJson(completion);
+    const result = buildResumeCardData(resumeText);
     return res.json(result);
   } catch (error) {
     next(error);
@@ -138,29 +100,7 @@ router.post('/parse-resume-experience', async (req: AuthenticatedRequest, res, n
       return res.status(400).json({ error: parsed.error.errors[0]?.message ?? 'Invalid resume text' });
     }
 
-    const completion = await callGemini({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: `Extract structured work experience entries AND project entries from this resume text. Resume:\n${parsed.data.resumeText}`,
-            },
-          ],
-        },
-      ],
-      systemInstruction: {
-        role: 'system',
-        parts: [
-          {
-            text: 'You extract work experience and project entries from resumes. Always return JSON with experiences and projects arrays.',
-          },
-        ],
-      },
-      ...buildJsonConfig(),
-    });
-
-    const result = parseGeminiJson(completion);
+    const result = extractExperiencesAndProjects(parsed.data.resumeText);
     return res.json(result);
   } catch (error) {
     next(error);

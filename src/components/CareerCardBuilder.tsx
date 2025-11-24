@@ -32,6 +32,7 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
   const [linkCopied, setLinkCopied] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string>(cardId);
   const [isLoadingCard, setIsLoadingCard] = useState(true);
+  const [forceExpandPreview, setForceExpandPreview] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [cardData, setCardData] = useState<CareerCardData>({
     profile: {
@@ -140,18 +141,35 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
     }
   };
 
-  const handleExport = async () => {
-    if (!previewRef.current) {
-      // If not in preview mode, switch to it first
+  const wait = (ms = 100) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const ensurePreviewReady = async () => {
+    if (!showPreview) {
       setShowPreview(true);
       toast.info("Switching to preview mode...");
-      // Wait for the preview to render, then try again
-      setTimeout(() => handleExport(), 500);
-      return;
+      await wait(400);
     }
 
+    setForceExpandPreview(true);
+    await wait(150);
+
+    if (!previewRef.current) {
+      await wait(150);
+    }
+
+    return Boolean(previewRef.current);
+  };
+
+  const handleExport = async () => {
     try {
       setIsExporting(true);
+
+      const ready = await ensurePreviewReady();
+      if (!ready || !previewRef.current) {
+        toast.error("Preview not ready yet. Please try again.");
+        return;
+      }
+
       toast.loading("Generating your career card PDF...");
 
       // Capture the preview card as canvas
@@ -207,6 +225,7 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
       toast.error("Failed to export career card. Please try again.");
     } finally {
       setIsExporting(false);
+      setForceExpandPreview(false);
     }
   };
 
@@ -337,7 +356,7 @@ const CareerCardBuilder = ({ cardId }: CareerCardBuilderProps) => {
       <div className="container mx-auto px-4 py-8">
         {showPreview ? (
           <div ref={previewRef}>
-            <CareerCardPreview data={cardData} />
+            <CareerCardPreview data={cardData} forceExpand={forceExpandPreview} />
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">

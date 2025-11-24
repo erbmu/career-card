@@ -3,12 +3,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Briefcase, FolderGit2, Sparkles, Workflow, Code2, Heart, ExternalLink, FileCode } from "lucide-react";
 import { CareerCardData } from "@/types/career-card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { SURVEY_QUESTIONS } from "./sections/StylesOfWorkSection";
 
 interface CareerCardPreviewProps {
   data: CareerCardData;
+  forceExpand?: boolean;
 }
 
 const themeColors = {
@@ -20,15 +21,41 @@ const themeColors = {
   slate: { primary: 'hsl(215 25% 35%)', gradient: 'from-slate-600/15 to-slate-700/8', ring: 'ring-slate-600/15', icon: 'text-slate-600' },
 };
 
-export const CareerCardPreview = ({ data }: CareerCardPreviewProps) => {
+export const CareerCardPreview = ({ data, forceExpand = false }: CareerCardPreviewProps) => {
   const [openSections, setOpenSections] = useState<string[]>(["experience"]);
   const selectedTheme = themeColors[data.theme || 'blue'];
+
+  const availableSections = useMemo(() => {
+    const sections: string[] = [];
+    if (data.experience.length) sections.push("experience");
+    if (data.projects.length) sections.push("projects");
+    if (data.greatestImpacts.length) sections.push("impacts");
+    if (data.stylesOfWork.length) sections.push("styles");
+    if (data.frameworks.length) sections.push("frameworks");
+    if (data.pastimes.length) sections.push("pastimes");
+    if (data.codeShowcase.length) sections.push("code");
+    return sections;
+  }, [
+    data.experience.length,
+    data.projects.length,
+    data.greatestImpacts.length,
+    data.stylesOfWork.length,
+    data.frameworks.length,
+    data.pastimes.length,
+    data.codeShowcase.length,
+  ]);
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) =>
       prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
     );
   };
+
+  useEffect(() => {
+    if (forceExpand) {
+      setOpenSections(availableSections);
+    }
+  }, [forceExpand, availableSections]);
 
   return (
     <div className="max-w-md mx-auto">
