@@ -458,7 +458,7 @@ function buildProject(block: string): ProjectEntry | null {
 
   const nameLine = lines.shift() ?? "";
   const name = formatProjectName(nameLine);
-  const description = normalizeWhitespace(lines.join(" "));
+  const description = formatProjectDescription(lines);
   const technologies = extractTechnologies(description);
 
   return {
@@ -484,6 +484,25 @@ function formatProjectName(raw: string) {
   }
 
   return formatted || "Project";
+}
+
+function formatProjectDescription(lines: string[]) {
+  const formatted = lines
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      if (/^[-•*]/.test(line)) {
+        return `• ${line.replace(/^[-•*]\s*/, "")}`;
+      }
+      return line;
+    });
+
+  let description = formatted.join("\n");
+  if (description.length > 1990) {
+    description = description.slice(0, 1990).trimEnd() + "...";
+  }
+
+  return description;
 }
 
 function splitTitleCompany(header: string, possibleCompany?: string) {
