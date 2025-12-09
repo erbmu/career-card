@@ -33,6 +33,16 @@ const ROLE_KEYWORDS = [
   "architect",
   "intern",
   "analyst",
+  "president",
+  "founder",
+  "co-founder",
+  "volunteer",
+  "director",
+  "chair",
+  "researcher",
+  "instructor",
+  "teacher",
+  "assistant",
 ];
 
 const PROJECT_KEYWORDS = [
@@ -43,6 +53,37 @@ const PROJECT_KEYWORDS = [
   "designed",
   "launched",
   "implemented",
+  "tool",
+  "platform",
+  "application",
+  "app",
+  "system",
+  "automation",
+  "framework",
+  "hackathon",
+  "challenge",
+  "ctf",
+  "prototype",
+];
+
+const SECTION_LABELS = [
+  "experience",
+  "work experience",
+  "professional experience",
+  "employment history",
+  "projects",
+  "project experience",
+  "personal projects",
+  "selected projects",
+  "skills",
+  "technical skills",
+  "tech stack",
+  "technologies",
+  "education",
+  "certifications",
+  "leadership",
+  "community",
+  "summary",
 ];
 
 const TECH_KEYWORDS = [
@@ -163,7 +204,8 @@ export function extractExperiencesAndProjects(resumeText: string) {
 }
 
 function analyzeResume(resumeText: string): ParsedResumeData {
-  const sections = splitIntoSections(resumeText);
+  const normalized = normalizeResumeText(resumeText);
+  const sections = splitIntoSections(normalized);
 
   let experiences = parseExperienceBlocks(sections.experience);
   if (experiences.length === 0) {
@@ -185,6 +227,27 @@ function analyzeResume(resumeText: string): ParsedResumeData {
     projects,
     frameworks,
   };
+}
+
+function normalizeResumeText(text: string) {
+  let normalized = text.replace(/\r/g, "\n");
+
+  normalized = normalized.replace(/[\u2022\u2023\u25CF\u25CB\u25C9\u25A0]/g, "\n• ");
+
+  SECTION_LABELS.forEach((label) => {
+    const regex = new RegExp(`(^|\\n)\\s*(${label})(\\s*:)?(?=\\n|\\s*$)`, "gi");
+    normalized = normalized.replace(regex, (_match, prefix, heading) => {
+      const safePrefix = typeof prefix === "string" ? prefix : "";
+      const safeHeading = typeof heading === "string" ? heading : "";
+      return `${safePrefix}\n\n${safeHeading.trim()}\n`;
+    });
+  });
+
+  return normalized
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .trim();
 }
 
 function splitIntoSections(text: string): ResumeSections {
@@ -226,7 +289,7 @@ function splitIntoSections(text: string): ResumeSections {
 }
 
 function parseExperienceBlocks(lines: string[]): ExperienceEntry[] {
-  const blocks = blockify(lines);
+  const blocks = segmentEntryBlocks(lines, "experience");
   const experiences: ExperienceEntry[] = [];
 
   for (const block of blocks) {
@@ -241,7 +304,7 @@ function parseExperienceBlocks(lines: string[]): ExperienceEntry[] {
 }
 
 function parseProjectBlocks(lines: string[]): ProjectEntry[] {
-  const blocks = blockify(lines);
+  const blocks = segmentEntryBlocks(lines, "project");
   const projects: ProjectEntry[] = [];
 
   for (const block of blocks) {
@@ -272,10 +335,80 @@ function parseFrameworks(lines: string[]): FrameworkEntry[] {
   }));
 }
 
-function blockify(lines: string[]): string[] {
-  const text = lines.join("\n").trim();
-  if (!text) return [];
-  return text.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
+function segmentEntryBlocks(lines: string[], type: "experience" | "project"): string[] {
+  const blocks: string[] = [];
+  let current: string[] = [];
+
+  const pushCurrent = () => {
+    if (current.length > 0) {
+      blocks.push(current.join("\n").trim());
+      current = [];
+    }
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      pushCurrent();
+      return;
+    }
+
+    if (isSectionHeading(trimmed)) {
+      pushCurrent();
+      return;
+    }
+
+    if (current.length > 0 && isEntryHeader(trimmed, type)) {
+      pushCurrent();
+    }
+
+    current.push(trimmed);
+  });
+
+  pushCurrent();
+  return blocks;
+}
+
+function isSectionHeading(line: string) {
+  const normalized = line.replace(/:$/, "").toLowerCase();
+  return SECTION_LABELS.some((label) => normalized === label.toLowerCase());
+}
+
+function isEntryHeader(line: string, type: "experience" | "project") {
+  if (isBulletLine(line)) {
+    return false;
+  }
+
+  if (DATE_RANGE_REGEX.test(line)) {
+    return true;
+  }
+
+  const normalized = line.toLowerCase();
+
+  if (type === "experience") {
+    if (ROLE_KEYWORDS.some((keyword) => normalized.includes(keyword.toLowerCase()))) {
+      return true;
+    }
+    if (/\b(leadership|club|president|chair|captain|volunteer|mentor|head|director)\b/i.test(line)) {
+      return true;
+    }
+  } else {
+    if (PROJECT_KEYWORDS.some((keyword) => normalized.includes(keyword.toLowerCase()))) {
+      return true;
+    }
+    if (/\b(ctf|hackathon|challenge|competition)\b/i.test(line)) {
+      return true;
+    }
+    if ((/[-—]/.test(line) || /:/.test(line)) && line.length < 140) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isBulletLine(line: string) {
+  return /^[-•*]/.test(line.trim());
 }
 
 function looksLikeExperience(block: string) {

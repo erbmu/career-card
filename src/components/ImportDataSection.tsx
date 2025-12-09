@@ -94,17 +94,61 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
 
   const extractTextFromPDF = async (pdf: pdfjsLib.PDFDocumentProxy): Promise<string> => {
     let fullText = "";
-    
+
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(" ");
-      fullText += pageText + "\n\n";
+
+      let lastY: number | null = null;
+      const pageLines: string[] = [];
+      let currentLine = "";
+
+      for (const item of textContent.items as any[]) {
+        if (!item?.str) continue;
+
+        const text = item.str.trim();
+        if (!text) continue;
+
+        const transform = item.transform || [];
+        const currentY = typeof transform[5] === "number" ? transform[5] : null;
+
+        if (lastY !== null && currentY !== null) {
+          const delta = Math.abs(currentY - lastY);
+          // Large jumps along the Y axis indicate a new line in the PDF layout.
+          if (delta > 8) {
+            if (currentLine) {
+              pageLines.push(currentLine.trim());
+              currentLine = "";
+            }
+          }
+        }
+
+        currentLine += (currentLine ? " " : "") + text.replace(/\s+/g, " ");
+
+        if (item.hasEOL) {
+          pageLines.push(currentLine.trim());
+          currentLine = "";
+        }
+
+        lastY = currentY;
+      }
+
+      if (currentLine) {
+        pageLines.push(currentLine.trim());
+      }
+
+      const pageText = pageLines
+        .join("\n")
+        .replace(/•\s*/g, "\n• ")
+        .replace(/\n{2,}/g, "\n")
+        .trim();
+
+      if (pageText) {
+        fullText += pageText + "\n\n";
+      }
     }
-    
-    return fullText;
+
+    return fullText.trim();
   };
 
   const handleCopyToExperience = async () => {
