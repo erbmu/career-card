@@ -457,15 +457,33 @@ function buildProject(block: string): ProjectEntry | null {
   if (lines.length === 0) return null;
 
   const nameLine = lines.shift() ?? "";
+  const name = formatProjectName(nameLine);
   const description = normalizeWhitespace(lines.join(" "));
   const technologies = extractTechnologies(description);
 
   return {
     id: randomUUID(),
-    name: titleCase(nameLine.replace(/^[-•]\s*/, "")) || "Project",
+    name,
     description,
     technologies: technologies.join(", "),
   };
+}
+
+function formatProjectName(raw: string) {
+  const withoutBullet = raw.replace(/^[-•*]\s*/, "").trim();
+  if (!withoutBullet) {
+    return "Project";
+  }
+
+  const delimiterMatch = withoutBullet.match(/(.+?)(?:\s+[–-]\s+|\s*:\s+)/);
+  const base = delimiterMatch ? delimiterMatch[1] : withoutBullet;
+  let formatted = titleCase(base.trim());
+
+  if (formatted.length > 100) {
+    formatted = formatted.slice(0, 97).trim() + "...";
+  }
+
+  return formatted || "Project";
 }
 
 function splitTitleCompany(header: string, possibleCompany?: string) {
