@@ -1,25 +1,20 @@
-import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import type { ElementType } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, FileText, Target, Users, CheckCircle2 } from "lucide-react";
 
 
 const Landing = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-    });
-  }, []);
+  const { user, loading } = useAuth();
+  const isAuthenticated = !!user;
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
-      navigate("/builder");
+      navigate("/dashboard");
     } else {
-      navigate("/auth");
+      navigate("/auth", { state: { from: "/dashboard" } });
     }
   };
 
@@ -32,16 +27,16 @@ const Landing = () => {
             Career Card
           </div>
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-              <Button onClick={() => navigate("/builder")} size="sm">
-                Go to Builder
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button onClick={() => navigate("/auth")} size="sm">
-                Get Started
-              </Button>
-            )}
+            <Button onClick={handleGetStarted} size="sm" disabled={loading}>
+              {isAuthenticated ? (
+                <>
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              ) : (
+                "Get Started"
+              )}
+            </Button>
           </div>
         </div>
       </nav>
@@ -183,7 +178,7 @@ const FeatureCard = ({
   title, 
   description 
 }: { 
-  icon: React.ElementType; 
+  icon: ElementType; 
   title: string; 
   description: string;
 }) => (
