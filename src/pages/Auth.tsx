@@ -10,7 +10,7 @@ const Auth = () => {
   const { user, loading, login, signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectPath = (location.state as { from?: string })?.from || "/";
+  const redirectPath = (location.state as { from?: string })?.from || "/dashboard";
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");

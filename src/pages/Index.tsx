@@ -17,7 +17,7 @@ const BuilderPage = () => {
 
   useEffect(() => {
     if (!loading && user && !id) {
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [loading, user, id, navigate]);
 
