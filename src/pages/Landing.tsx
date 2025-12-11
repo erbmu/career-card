@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Infinity, Layers, Palette, Repeat, Rocket } from "lucide-react";
+import { ArrowRight, Sparkles, Infinity, Layers, Palette, Repeat, Rocket, CheckCircle2 } from "lucide-react";
 
 const heroHighlights = [
   {
@@ -45,6 +45,59 @@ const proofPoints = [
   "Highlight content beyond work—mentorship, tutorials, community wins, side quests.",
   "Export polished share links or PDFs without touching design tools.",
   "Revolutionizing how you showcase career momentum—this is the anti-resume.",
+];
+
+const previewStats = [
+  { label: "Cards crafted", value: "06" },
+  { label: "Spotlights", value: "48" },
+  { label: "Themes", value: "05" },
+];
+
+const previewBlocks: Array<
+  { title: string; description: string } | { title: string; bullets: string[] }
+> = [
+  {
+    title: "Impact Stories",
+    description:
+      "Security research + storytelling hub powered by long-form breakdowns, talk recordings, and quantifiable results.",
+  },
+  {
+    title: "What’s inside",
+    bullets: ["18 experience chapters", "12 community wins", "4 live tutorials embedded", "Auto-updated code showcase"],
+  },
+];
+
+const themeShowcase = [
+  {
+    name: "Midnight Pulse",
+    gradient: "linear-gradient(135deg, #1b1d57, #482b8a, #0b0114)",
+    accent: "#8a7bff",
+  },
+  {
+    name: "Aurora Mint",
+    gradient: "linear-gradient(135deg, #0f2b28, #0d5f59, #03110f)",
+    accent: "#4ce0c6",
+  },
+  {
+    name: "Solar Peach",
+    gradient: "linear-gradient(135deg, #401709, #b7431a, #140500)",
+    accent: "#ffb877",
+  },
+  {
+    name: "Noir Serif",
+    gradient: "linear-gradient(135deg, #1d1d1d, #2c2b32, #030303)",
+    accent: "#c8c1ff",
+  },
+  {
+    name: "Electric Slate",
+    gradient: "linear-gradient(135deg, #111b3b, #304b8c, #040a18)",
+    accent: "#7bc2ff",
+  },
+  {
+    name: "Citrus Grid",
+    gradient: "linear-gradient(135deg, #382600, #f4a51c, #140a00)",
+    accent: "#ffd68a",
+  },
 ];
 
 const Landing = () => {
@@ -113,35 +166,55 @@ const Landing = () => {
             </div>
 
             <div className="flex-1">
-              <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-[#120427] via-[#1f0b3f] to-[#070115] p-8 shadow-[0_30px_80px_rgba(4,0,12,0.6)]">
-                <div className="absolute -top-16 right-6 hidden md:block">
-                  <div className="rounded-3xl bg-white text-black px-4 py-2 text-sm shadow-xl">
+              <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0c071a] via-[#1b0b35] to-[#040109] p-8 shadow-[0_40px_120px_rgba(4,0,12,0.7)]">
+                <div className="absolute -top-14 right-4 hidden md:block">
+                  <div className="rounded-2xl bg-white text-black px-4 py-2 text-xs shadow-2xl">
                     <p className="font-semibold">Creator Mode</p>
                     <p>Add your next milestone in seconds.</p>
                   </div>
                 </div>
-                <div className="space-y-6 text-white/90">
-                  <p className="text-sm uppercase tracking-[0.3em] text-white/50">Live Preview</p>
-                  <h2 className="text-3xl font-semibold">Aurora Digitals</h2>
-                  <p className="text-white/70">
-                    Design Engineer & Builder — crafting immersive experiences, producing YouTube tutorials, leading 4 active side communities.
-                  </p>
-                  <div className="grid gap-4">
-                    <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-                      <p className="text-xs uppercase tracking-widest text-white/50">Impact</p>
-                      <p className="text-sm mt-1 text-white/80">
-                        Built 6 cards dedicated to security research, data storytelling, and developer community leadership. Each link is tailored to roles I pitch.
+                <div className="space-y-7 text-white/90">
+                  <div className="flex items-start justify-between gap-8">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.4em] text-white/40">Live Preview</p>
+                      <h2 className="mt-3 text-3xl font-semibold">Aurora Digitals</h2>
+                      <p className="text-white/70 mt-2 max-w-md">
+                        Design Engineer & Builder documenting research drops, running tutorials, and leading 4 active side communities.
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-                      <p className="text-xs uppercase tracking-widest text-white/50">What’s inside</p>
-                      <ul className="text-sm mt-1 space-y-1 text-white/80">
-                        <li>• 18 experience blocks</li>
-                        <li>• 12 community & content highlights</li>
-                        <li>• 4 live YouTube tutorials & breakdowns</li>
-                        <li>• Design + code themes switch on the fly</li>
-                      </ul>
+                    <div className="rounded-2xl bg-white/10 border border-white/15 px-4 py-3 text-sm text-right">
+                      <p className="text-white/70 uppercase tracking-[0.3em] text-[10px]">Status</p>
+                      <p className="text-white font-semibold">Share-ready</p>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    {previewStats.map((stat) => (
+                      <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur">
+                        <p className="text-3xl font-semibold">{stat.value}</p>
+                        <p className="text-xs uppercase tracking-[0.3em] text-white/60 mt-1">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-4">
+                    {previewBlocks.map((block) => (
+                      <div key={block.title} className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                        <p className="text-xs uppercase tracking-[0.4em] text-white/50">{block.title}</p>
+                        {"bullets" in block ? (
+                          <ul className="mt-3 space-y-2 text-sm text-white/80">
+                            {block.bullets.map((bullet) => (
+                              <li key={bullet} className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-300 mt-0.5" />
+                                <span>{bullet}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-3 text-sm text-white/75">{block.description}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -154,7 +227,7 @@ const Landing = () => {
               <h2 className="text-3xl sm:text-4xl font-semibold">
                 A dynamic knowledge board for your professional arc—unlimited, contextual, and beautiful.
               </h2>
-              <div className="grid md:grid-cols-3 gap-8 text-left">
+              <div className="grid md:grid-cols-2 gap-8 text-left">
                 {featurePillars.map((pillar) => (
                   <div key={pillar.title} className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
                     <pillar.icon className="h-8 w-8 text-emerald-300" />
@@ -200,11 +273,17 @@ const Landing = () => {
                   <p className="text-white/70">
                     Moody cyberpunk, editorial serif, or clean product style—Career Cards come with multiple handcrafted themes so every share link feels intentional.
                   </p>
-                  <div className="grid grid-cols-3 gap-4">
-                    {["Midnight Pulse", "Aurora Mint", "Solar Peach"].map((theme) => (
-                      <div key={theme} className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center">
-                        <div className="h-16 rounded-xl bg-gradient-to-br from-white/50 to-white/0 mb-3" />
-                        <p className="text-sm font-medium">{theme}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {themeShowcase.map((theme) => (
+                      <div key={theme.name} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center shadow-inner">
+                        <div className="relative h-16 rounded-xl mb-3 overflow-hidden" style={{ background: theme.gradient }}>
+                          <div
+                            className="absolute inset-0 rounded-xl opacity-60"
+                            style={{ background: `radial-gradient(circle at 20% 20%, ${theme.accent}, transparent 60%)` }}
+                          />
+                          <div className="absolute inset-0 border border-white/20 rounded-xl" />
+                        </div>
+                        <p className="text-sm font-medium">{theme.name}</p>
                       </div>
                     ))}
                   </div>
