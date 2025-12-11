@@ -157,9 +157,10 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       return;
     }
 
+    let toastId: string | number | undefined;
     try {
       setIsLoading(true);
-      toast.loading("Parsing your experience...");
+      toastId = toast.loading("Parsing your experience...");
 
       const data = await aiApi.parseResumeExperience({ resumeText: extractedText });
 
@@ -197,6 +198,9 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       logger.error('Error processing resume:', error);
       toast.error(error.message || "Failed to parse resume");
     } finally {
+      if (toastId !== undefined) {
+        toast.dismiss(toastId);
+      }
       setIsLoading(false);
     }
   };
@@ -212,7 +216,7 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
     }
 
     setIsLoading(true);
-    toast.loading("Loading your resume...");
+    const toastId = toast.loading("Loading your resume...");
 
     try {
       if (file.type === 'application/pdf') {
@@ -233,6 +237,7 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       logger.error("Error loading resume:", error);
       toast.error(error.message || "Failed to load resume. Please try again.");
     } finally {
+      toast.dismiss(toastId);
       setIsLoading(false);
     }
   };
@@ -252,9 +257,10 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       return;
     }
 
+    let toastId: string | number | undefined;
     try {
       setIsParsingPortfolio(true);
-      toast.loading("Fetching portfolio content...");
+      toastId = toast.loading("Fetching portfolio content...");
 
       const portfolioResponse = await aiApi.parsePortfolio({ portfolioUrl: trimmedUrl });
 
@@ -281,6 +287,9 @@ export const ImportDataSection = ({ onDataImported }: ImportDataSectionProps) =>
       console.error('Error processing portfolio:', error);
       toast.error(error.message || "Failed to parse portfolio URL");
     } finally {
+      if (toastId !== undefined) {
+        toast.dismiss(toastId);
+      }
       setIsParsingPortfolio(false);
     }
   };
