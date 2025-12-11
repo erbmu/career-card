@@ -2,7 +2,62 @@ import type { ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, FileText, Target, Users, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  FileText,
+  Target,
+  Users,
+  CheckCircle2,
+  Infinity,
+  Layers,
+  Palette,
+  Repeat,
+} from "lucide-react";
+
+const featureHighlights = [
+  {
+    icon: FileText,
+    title: "Rich Sections",
+    description:
+      "Capture your complete professional story with dedicated sections for experience, projects, impacts, frameworks, and more.",
+  },
+  {
+    icon: Target,
+    title: "AI-Powered Scoring",
+    description:
+      "Get instant feedback on how well your career card matches specific roles with our intelligent scoring system.",
+  },
+  {
+    icon: Users,
+    title: "Shareable Profiles",
+    description: "Export as PDF or share via link. Your career card is always accessible and professionally formatted.",
+  },
+  {
+    icon: Infinity,
+    title: "Endless Canvas",
+    description:
+      "No page limits here. Embed long-form breakdowns, visuals, or learnings without trimming the story that matters.",
+  },
+  {
+    icon: Layers,
+    title: "Multiple Cards",
+    description:
+      "Spin up unique cards for PM roles, research tracks, or content gigs—send the version that resonates with each audience.",
+  },
+  {
+    icon: Palette,
+    title: "Theme-Driven Design",
+    description:
+      "Switch between crafted color systems so every share link feels intentional and on-brand without touching design tools.",
+  },
+  {
+    icon: Repeat,
+    title: "Living Timeline",
+    description:
+      "Keep stacking wins as they happen. Log new experiments or shout-outs and never worry about deleting past achievements.",
+  },
+];
 
 
 const Landing = () => {
@@ -76,23 +131,24 @@ const Landing = () => {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={FileText}
-              title="Rich Sections"
-              description="Capture your complete professional story with dedicated sections for experience, projects, impacts, frameworks, and more."
-            />
-            <FeatureCard 
-              icon={Target}
-              title="AI-Powered Scoring"
-              description="Get instant feedback on how well your career card matches specific roles with our intelligent scoring system."
-            />
-            <FeatureCard 
-              icon={Users}
-              title="Shareable Profiles"
-              description="Export as PDF or share via link. Your career card is always accessible and professionally formatted."
-            />
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {featureHighlights.map((feature) => (
+              <FeatureCard key={feature.title} {...feature} />
+            ))}
           </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-20 border-y border-border bg-secondary/30">
+        <div className="max-w-4xl mx-auto text-center space-y-4">
+          <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Revolutionizing resumes</p>
+          <h2 className="editorial-heading text-3xl lg:text-4xl font-semibold text-foreground">
+            We’re transforming static bullet lists into living, multi-dimensional narratives.
+          </h2>
+          <p className="editorial-body text-muted-foreground text-lg">
+            Career Cards are built for creators, builders, and operators who outgrow the one-page resume. Show the momentum,
+            context, and creativity behind every chapter—then keep it updated without rebuilding from scratch.
+          </p>
         </div>
       </section>
 
